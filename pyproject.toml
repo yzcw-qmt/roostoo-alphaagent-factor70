@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roostoo-competition-bot"
+version = "0.1.0"
+description = "Risk-first autonomous trading bot for the Roostoo Quant Trading Hackathon"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26,<3",
+  "pandas>=2.1,<3",
+  "requests>=2.31,<3",
+  "python-dotenv>=1.0,<2",
+]
+
+[project.optional-dependencies]
+ml = ["xgboost>=2.0,<4", "scikit-learn>=1.4,<2", "joblib>=1.3,<2"]
+dev = ["pytest>=8,<9"]
+
+[tool.setuptools.packages.find]
+include = ["roostoo_bot*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
