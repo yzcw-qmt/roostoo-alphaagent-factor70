@@ -11,7 +11,7 @@ from .data_fetcher import BinanceDataFetcher
 from .executor import TradeExecutor, round_down
 from .features import build_features
 from .journal import Journal, StateStore
-from .model import DirectionModel
+from .model import DirectionModel, PairDirectionModel
 from .ma_macd_strategy import MaMacdSignalGenerator, MaMacdXGBSignalGenerator
 from .risk_manager import RiskManager
 from .signals import Signal, SignalGenerator
@@ -60,7 +60,10 @@ class TradingEngine:
             if settings.strategy == "ma_macd_xgb":
                 self.signals = MaMacdXGBSignalGenerator(
                     technical,
-                    DirectionModel(settings.model_path),
+                    PairDirectionModel(
+                        {"BTC/USD": settings.btc_model_path, "ETH/USD": settings.eth_model_path},
+                        settings.model_path,
+                    ),
                     settings.model_weight,
                 )
             else:

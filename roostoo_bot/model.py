@@ -47,3 +47,26 @@ class DirectionModel:
         )
         return float(1 / (1 + np.exp(-np.clip(raw, -8, 8))))
 
+
+class PairDirectionModel:
+    """Load separate XGBoost models for each traded asset.
+
+    A shared model is retained as a fallback so dry-run remains usable before
+    the final rolling models have been trained.
+    """
+
+    def __init__(self, paths: dict[str, str | Path], fallback: str | Path | None = None) -> None:
+        self.models = {pair: DirectionModel(path) for pair, path in paths.items()}
+        self.fallback = DirectionModel(fallback) if fallback else None
+
+    @property
+    def is_ml(self) -> bool:
+        return any(model.is_ml for model in self.models.values()) or bool(self.fallback and self.fallback.is_ml)
+
+    def predict_probability_for_pair(self, pair: str, features: pd.DataFrame) -> float:
+        model = self.models.get(pair)
+        if model is not None and model.is_ml:
+            return model.predict_probability(features)
+        if self.fallback is not None:
+            return self.fallback.predict_probability(features)
+        return 0.5

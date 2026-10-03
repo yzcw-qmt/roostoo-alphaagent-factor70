@@ -1,13 +1,13 @@
 # Roostoo Quant Trading Bot
 
-面向 Roostoo Quant Trading Hackathon 的本地可运行交易系统。它把方案中的 **XGBoost + 多因子融合 + 严格风控** 落成代码，并按比赛页面和官方 API 文档实现。
+面向 Roostoo Quant Trading Hackathon 的本地可运行交易系统。最终策略固定为 **XGBoost + MA/MACD 技术评分**，并按资产分别训练、按 30 分钟 K 线运行。
 
 > 默认是 `dry-run`。只有显式执行 `python main.py run --live` 且提供有效密钥时才会发出真实交易请求。
 
 ## 比赛约束对应关系
 
 - 全自动交易：主循环独立完成取数、信号、风控和执行，不提供手动下单入口。
-- 非高频：默认每小时运行一次；客户端额外限制为每分钟 28 次请求，低于 30 次上限。
+- 非高频：默认每 30 分钟运行一次；客户端额外限制为每分钟 28 次请求，低于 30 次上限。
 - 现货 1× 多空：多仓使用 `/v3/place_order`，空仓使用 `/v6/short_open` 与 `/v6/short_close`，不使用杠杆。
 - 成本建模：回测按市场单 0.1% 手续费扣减；实盘日志记录 API 返回的实际费用。
 - 订单执行：默认使用普通限价单，现货多仓开/平与空仓开仓按买一/卖一挂单；空仓平仓当前仍使用市价单，因为 Roostoo `/v6/short_close` 封装没有限价字段。普通 `LIMIT` 不等于保证 Maker，实盘需根据实际成交回报确认费率。
@@ -25,7 +25,7 @@ roostoo_bot/
   api_client.py                 # HMAC-SHA256、限流、重试、/v3 与 /v6
   data_fetcher.py               # Binance 公共 1h K 线
   features.py                   # 15 个趋势/动量/波动特征
-  model.py                      # XGBoost 推理与无模型 fallback（旧策略）
+  model.py                      # XGBoost 推理、按资产模型与 fallback
   signals.py                    # 旧版模型 + 技术因子信号
   ma_macd_strategy.py           # 纯技术指标 MA10/MA60 + MACD 策略
   risk_manager.py               # 置信度仓位、日亏损、总回撤
@@ -100,7 +100,15 @@ python -m scripts.train_model --pair BTC/USD --candles 1000
 python -m scripts.backtest --pair BTC/USD --candles 1000
 ```
 
-训练出模型后可用 `STRATEGY=ma_macd_xgb` 启用融合信号；当前默认 `MODEL_WEIGHT=0.70`，也可通过环境变量覆盖。建议先做严格的时间切分样本外评估，再接入 Roostoo dry-run。
+训练最终模型：
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. \
+python3 -m scripts.train_final_models
+```
+
+该命令按最终选择训练两个独立模型：BTC 使用 180 天窗口，ETH 使用 120 天窗口。
+运行时默认启用 `STRATEGY=ma_macd_xgb`，最终分数为 `60% XGBoost + 40% MA/MACD`；也可通过环境变量覆盖。
 
 当前一年 30 分钟数据的双费率回测：
 
@@ -134,7 +142,7 @@ python -m scripts.multi_asset_backtest `
 
 完整结果保存为 `reports/multi_asset_backtest.json`，历史行情缓存到 `data/history/`。使用相同时间、币种和随机种子可以复现实验；添加 `--refresh` 可重新下载行情。
 
-当前实盘默认使用 30 分钟 MA10/MA60 + MACD 评分策略，默认只交易 BTC/USD 和 ETH/USD。该策略只使用 ATR、均线、MACD、DIFF/DEA 和因果极值确认，不使用 XGBoost。另有 `STRATEGY=ma_macd_xgb` 模式，将同一纯技术分与 XGBoost 概率按 `MODEL_WEIGHT` 融合，再由 `TradingEngine` 接入 Roostoo 的账户、行情和订单执行；如果模型文件不存在，日志中会标明使用 fallback，不应当作真正的 XGBoost 结果。最终信号总分 `>=0.62` 做多、`<=0.38` 做空，否则观望。可以运行 `python -m scripts.evaluate_technical_signal --pair BTC/USD` 评估纯技术信号。
+当前实盘默认使用 30 分钟 MA10/MA60 + MACD 评分与 XGBoost 融合策略，只交易 BTC/USD 和 ETH/USD。BTC、ETH 分别加载自己的模型；模型文件暂不存在时才回退到共享模型或确定性 fallback，日志会标明这一点。最终信号总分 `>=0.62` 做多、`<=0.38` 做空，否则观望。
 
 Binance 单次 K 线接口最多返回 1000 根，正式训练应另行准备更长的历史 CSV，并采用 walk-forward 验证。当前脚本是可运行基线，不应把样本内结果视为未来收益保证。
 

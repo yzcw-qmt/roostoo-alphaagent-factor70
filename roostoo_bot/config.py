@@ -30,7 +30,8 @@ class Settings:
     request_limit_per_minute: int = 28
     timeout_seconds: float = 15.0
     retries: int = 3
-    strategy: str = "ma_macd"
+    # Final selected strategy: 60% XGBoost + 40% causal MA/MACD score.
+    strategy: str = "ma_macd_xgb"
     order_type: str = "LIMIT"
     limit_offset_bps: float = 0.0
 
@@ -38,7 +39,7 @@ class Settings:
     short_threshold: float = 0.38
     exit_long_threshold: float = 0.48
     exit_short_threshold: float = 0.52
-    model_weight: float = 0.20
+    model_weight: float = 0.60
     technical_weight: float = 0.40
 
     max_position_fraction: float = 0.30
@@ -63,7 +64,9 @@ class Settings:
     same_direction_risk_multiplier: float = 0.85
     opposite_direction_risk_multiplier: float = 0.75
 
-    model_path: Path = Path("models/xgb_btc_1h.json")
+    model_path: Path = Path("models/xgb_30m_multi.json")
+    btc_model_path: Path = Path("models/xgb_btc_30m_180d.json")
+    eth_model_path: Path = Path("models/xgb_eth_30m_120d.json")
     state_path: Path = Path("data/state.json")
     log_dir: Path = Path("logs")
 
@@ -82,12 +85,15 @@ class Settings:
             pairs=pairs,
             dry_run=_bool("DRY_RUN", True),
             loop_interval_seconds=int(os.getenv("LOOP_INTERVAL_SECONDS", "1800")),
-            strategy=os.getenv("STRATEGY", "ma_macd").strip().lower(),
+            strategy=os.getenv("STRATEGY", "ma_macd_xgb").strip().lower(),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),
             long_threshold=_float("LONG_THRESHOLD", 0.62),
             short_threshold=_float("SHORT_THRESHOLD", 0.38),
-            model_weight=_float("MODEL_WEIGHT", 0.20),
+            model_weight=_float("MODEL_WEIGHT", 0.60),
+            model_path=Path(os.getenv("MODEL_PATH", "models/xgb_30m_multi.json")),
+            btc_model_path=Path(os.getenv("BTC_MODEL_PATH", "models/xgb_btc_30m_180d.json")),
+            eth_model_path=Path(os.getenv("ETH_MODEL_PATH", "models/xgb_eth_30m_120d.json")),
         )
 
     def validate_live(self) -> None:

@@ -253,7 +253,12 @@ class MaMacdXGBSignalGenerator:
 
     def generate(self, pair: str, candles: pd.DataFrame, features: pd.DataFrame | None = None) -> MaMacdSignal:
         technical = self.technical.generate(pair, candles, features)
-        probability = self.model.predict_probability(features) if features is not None else 0.5
+        if features is None:
+            probability = 0.5
+        elif hasattr(self.model, "predict_probability_for_pair"):
+            probability = self.model.predict_probability_for_pair(pair, features)
+        else:
+            probability = self.model.predict_probability(features)
         strength = float(
             self.model_weight * probability
             + (1.0 - self.model_weight) * technical.technical_score
