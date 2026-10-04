@@ -59,9 +59,17 @@ class CrossSectionalFactorStrategy:
         self.top_n = top_n
         self.function = alphaagent_70
 
+    @staticmethod
+    def is_crypto_pair(pair: str) -> bool:
+        """Exclude Roostoo stock proxies, whose symbols use a ``B`` suffix."""
+        base = pair.split("/", 1)[0].upper()
+        return not base.endswith("B")
+
     def rank(self, candles: Mapping[str, pd.DataFrame]) -> list[FactorSignal]:
         values: list[tuple[str, float, float]] = []
         for pair, frame in candles.items():
+            if not self.is_crypto_pair(pair):
+                continue
             value = self.function(frame)
             if np.isfinite(value):
                 price = float(frame["close"].iloc[-1])
