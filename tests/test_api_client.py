@@ -36,6 +36,12 @@ def test_wallet_data_shape_is_supported() -> None:
     assert TradingEngine._wallet_present(payload)
 
 
+def test_spot_wallet_shape_is_supported() -> None:
+    payload = {"Success": True, "SpotWallet": {"USD": {"Free": 50000}}}
+    assert TradingEngine._wallet(payload) == {"USD": {"Free": 50000}}
+    assert TradingEngine._wallet_present(payload)
+
+
 def test_short_positions_handles_missing_or_nested_positions() -> None:
     assert TradingEngine._short_positions({"Success": True}) == []
     positions = [{"Pair": "BTC/USD"}]

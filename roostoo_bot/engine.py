@@ -101,9 +101,14 @@ class TradingEngine:
         wallet = payload.get("Wallet")
         if isinstance(wallet, dict):
             return wallet
+        spot_wallet = payload.get("SpotWallet")
+        if isinstance(spot_wallet, dict):
+            return spot_wallet
         data = payload.get("Data")
         if isinstance(data, dict) and isinstance(data.get("Wallet"), dict):
             return data["Wallet"]
+        if isinstance(data, dict) and isinstance(data.get("SpotWallet"), dict):
+            return data["SpotWallet"]
         return {}
 
     @staticmethod
@@ -113,8 +118,13 @@ class TradingEngine:
             return False
         if isinstance(payload.get("Wallet"), dict):
             return True
+        if isinstance(payload.get("SpotWallet"), dict):
+            return True
         data = payload.get("Data")
-        return isinstance(data, dict) and isinstance(data.get("Wallet"), dict)
+        return isinstance(data, dict) and (
+            isinstance(data.get("Wallet"), dict)
+            or isinstance(data.get("SpotWallet"), dict)
+        )
 
     @staticmethod
     def _short_positions(payload: dict[str, Any]) -> list[dict[str, Any]]:
