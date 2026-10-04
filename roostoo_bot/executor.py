@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 from typing import Any
 
 from .api_client import RoostooClient
@@ -11,6 +11,12 @@ from .journal import Journal
 def round_down(value: float, precision: int) -> float:
     step = Decimal(1).scaleb(-precision)
     return float(Decimal(str(value)).quantize(step, rounding=ROUND_DOWN))
+
+
+def round_up(value: float, precision: int) -> float:
+    """Round a price upward to avoid making a marketable buy non-marketable."""
+    step = Decimal(1).scaleb(-precision)
+    return float(Decimal(str(value)).quantize(step, rounding=ROUND_UP))
 
 
 class TradeExecutor:

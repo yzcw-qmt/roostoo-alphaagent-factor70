@@ -8,7 +8,7 @@ from typing import Any
 from .api_client import RoostooClient, RoostooAPIError
 from .config import Settings
 from .data_fetcher import BinanceDataFetcher
-from .executor import TradeExecutor, round_down
+from .executor import TradeExecutor, round_down, round_up
 from .features import build_features
 from .factor_strategy import CrossSectionalFactorStrategy, FactorSignal
 from .journal import Journal, StateStore
@@ -298,7 +298,15 @@ class TradingEngine:
         """Rebalance a daily long-only top-N factor portfolio with LIMIT orders."""
         if not signals or equity <= 0:
             return
-        today = datetime.now(timezone.utc).date().isoformat()
+        now = datetime.now(timezone.utc)
+        today = now.date().isoformat()
+        # Daily candles are UTC-calendar candles.  The backtest uses the
+        # previous completed daily candle and rebalances at the next candle
+        # open: UTC 00:00 (08:00 Hong Kong time).  A short window handles
+        # normal loop jitter while preventing a late-starting bot from
+        # silently rebalancing at an arbitrary time of day.
+        if now.hour != 0 or now.minute >= 30:
+            return
         if self.bot_state.setdefault("factor_rebalance", {}).get("date") == today:
             return
         selected = [signal for signal in signals if signal.selected]
@@ -325,7 +333,8 @@ class TradingEngine:
                 if current_notional >= minimum:
                     self.executor.sell_limit(
                         pair, round_down(quantity, amount_precision),
-                        round_down(float(ticker["MinAsk"]), price_precision),
+                        # A sell at or below the current bid is marketable.
+                        round_down(float(ticker["MaxBid"]), price_precision),
                     )
                 continue
 
@@ -335,16 +344,18 @@ class TradingEngine:
             if difference > 0:
                 buy_qty = round_down(difference / price, amount_precision)
                 if buy_qty > 0:
+                    # A buy at or above the current ask is marketable. Round
+                    # upward so price precision cannot move it below the ask.
                     self.executor.buy_limit(
                         pair, buy_qty,
-                        round_down(float(ticker["MaxBid"]), price_precision),
+                        round_up(float(ticker["MinAsk"]), price_precision),
                     )
             else:
                 sell_qty = round_down(min(quantity, -difference / price), amount_precision)
                 if sell_qty > 0:
                     self.executor.sell_limit(
                         pair, sell_qty,
-                        round_down(float(ticker["MinAsk"]), price_precision),
+                        round_down(float(ticker["MaxBid"]), price_precision),
                     )
 
         self.bot_state.setdefault("factor_rebalance", {})["date"] = today
@@ -448,4 +459,14 @@ class TradingEngine:
                 self.log.exception("Cycle failed")
                 self.journal.write("cycle_error", error=str(exc))
             elapsed = time.monotonic() - started
-            time.sleep(max(1.0, self.settings.loop_interval_seconds - elapsed))
+            if self.factor_strategy is not None:
+                # Align factor cycles to UTC half-hour boundaries.  This
+                # makes the 00:00 UTC rebalance deterministic even when the
+                # process is started at an arbitrary time; UTC 00:00 is
+                # 08:00 in Hong Kong.
+                interval = max(1800, self.settings.loop_interval_seconds)
+                now = time.time()
+                next_boundary = (int(now // interval) + 1) * interval
+                time.sleep(max(1.0, next_boundary - now))
+            else:
+                time.sleep(max(1.0, self.settings.loop_interval_seconds - elapsed))
