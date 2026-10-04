@@ -49,7 +49,7 @@ class TradingEngine:
             settings.trailing_gap,
         )
         self.factor_strategy: CrossSectionalFactorStrategy | None = None
-        if settings.strategy == "gplearn_1852":
+        if settings.strategy == "alphaagent_70":
             self.factor_strategy = CrossSectionalFactorStrategy(settings.strategy, settings.factor_top_n)
             self.signals = None
         elif settings.strategy in {"ma_macd", "ma_macd_xgb"}:

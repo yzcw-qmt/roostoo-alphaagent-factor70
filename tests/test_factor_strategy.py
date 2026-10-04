@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from roostoo_bot.factor_strategy import CrossSectionalFactorStrategy, gplearn_1852
+from roostoo_bot.factor_strategy import CrossSectionalFactorStrategy, alphaagent_70
 
 
 def daily_frame(periods: int = 90, start: float = 100.0) -> pd.DataFrame:
@@ -12,12 +12,12 @@ def daily_frame(periods: int = 90, start: float = 100.0) -> pd.DataFrame:
 
 def test_factors_require_closed_history() -> None:
     frame = daily_frame()
-    assert gplearn_1852(frame) in {0.0, 1.0}
+    assert -1.0 <= alphaagent_70(frame) <= 1.0
 
 
 def test_cross_sectional_strategy_selects_top_n_long_only() -> None:
     frames = {f"C{i}/USD": daily_frame(start=100 + i) for i in range(6)}
-    signals = CrossSectionalFactorStrategy("gplearn_1852", top_n=5).rank(frames)
+    signals = CrossSectionalFactorStrategy("alphaagent_70", top_n=5).rank(frames)
     assert len(signals) == 6
     assert sum(signal.selected for signal in signals) == 5
     assert all(signal.action in {"LONG", "HOLD"} for signal in signals)

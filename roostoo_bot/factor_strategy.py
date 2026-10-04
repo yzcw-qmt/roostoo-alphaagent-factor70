@@ -37,25 +37,27 @@ def _closed_daily(frame: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def gplearn_1852(frame: pd.DataFrame) -> float:
-    """gplearn factor 1852, exactly as the supplied binary expression."""
-    data = _closed_daily(frame).tail(64)
-    if len(data) < 64:
+def alphaagent_70(frame: pd.DataFrame) -> float:
+    """AlphaAgent factor 70: net 20-day move / absolute 20-day move."""
+    data = _closed_daily(frame).tail(21)
+    if len(data) < 21:
         return float("nan")
-    idx_max_1_based = int(np.argmax(data["high"].astype(float).to_numpy())) + 1
-    low_std = float(data["low"].astype(float).tail(30).std())
-    return float(abs(int(idx_max_1_based > low_std)))
+    delta = data["close"].astype(float).diff().iloc[1:]
+    denominator = float(delta.abs().sum())
+    if denominator == 0:
+        return 0.0
+    return float(delta.sum() / denominator)
 
 
 class CrossSectionalFactorStrategy:
     """Daily top-N long-only cross-sectional strategy."""
 
-    def __init__(self, name: str = "gplearn_1852", top_n: int = 5) -> None:
-        if name != "gplearn_1852":
+    def __init__(self, name: str = "alphaagent_70", top_n: int = 5) -> None:
+        if name != "alphaagent_70":
             raise ValueError(f"Unsupported factor strategy: {name}")
         self.name = name
         self.top_n = top_n
-        self.function = gplearn_1852
+        self.function = alphaagent_70
 
     def rank(self, candles: Mapping[str, pd.DataFrame]) -> list[FactorSignal]:
         values: list[tuple[str, float, float]] = []

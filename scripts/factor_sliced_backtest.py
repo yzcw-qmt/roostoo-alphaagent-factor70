@@ -103,7 +103,7 @@ def simulate_segments(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--strategy", choices=["gplearn_1852"], default="gplearn_1852")
+    parser.add_argument("--strategy", choices=["alphaagent_70"], default="alphaagent_70")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     daily = load_daily(Path("data/history"))

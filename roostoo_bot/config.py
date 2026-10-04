@@ -31,7 +31,7 @@ class Settings:
     timeout_seconds: float = 15.0
     retries: int = 3
     # Final selected strategy: 60% XGBoost + 40% causal MA/MACD score.
-    strategy: str = "gplearn_1852"
+    strategy: str = "alphaagent_70"
     order_type: str = "LIMIT"
     limit_offset_bps: float = 0.0
 
@@ -86,7 +86,7 @@ class Settings:
             pairs=pairs,
             dry_run=_bool("DRY_RUN", True),
             loop_interval_seconds=int(os.getenv("LOOP_INTERVAL_SECONDS", "1800")),
-            strategy=os.getenv("STRATEGY", "gplearn_1852").strip().lower(),
+            strategy=os.getenv("STRATEGY", "alphaagent_70").strip().lower(),
             factor_top_n=int(os.getenv("FACTOR_TOP_N", "5")),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),

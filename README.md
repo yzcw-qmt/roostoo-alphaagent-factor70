@@ -13,7 +13,7 @@
 - 订单执行：默认使用普通限价单，现货多仓开/平与空仓开仓按买一/卖一挂单；空仓平仓当前仍使用市价单，因为 Roostoo `/v6/short_close` 封装没有限价字段。普通 `LIMIT` 不等于保证 Maker，实盘需根据实际成交回报确认费率。
 - 账户保护：带凭证运行时，`/v3/balance` 必须返回有效 `Wallet`；若返回 `null`、缺失或异常，Bot 会记录 `WALLET_UNAVAILABLE` 并停止产生信号/订单，避免以 0 净值误下单。
 - 测试模式：`DRY_RUN=true` 仍会读取 Roostoo 的余额、行情和空仓状态，但不会调用下单接口；没有凭证的离线 dry-run 才使用本地虚拟 USD 余额。
-- 横截面因子策略：`STRATEGY=gplearn_1852` 时，Bot 使用外部 Binance 日线 OHLCV，在每日收盘后对 `TRADING_PAIRS` 中可交易资产排序，选取因子值最高的 5 个资产等权做多；不做空、不使用杠杆，每日只调仓一次。
+- 横截面因子策略：`STRATEGY=alphaagent_70` 时，Bot 使用外部 Binance 日线 OHLCV，按 `Sum(Delta(close,1),20) / Sum(Abs(Delta(close,1)),20)` 计算过去 20 日方向性，在每日收盘后对 `TRADING_PAIRS` 中可交易资产排序，选取因子值最高的 5 个资产等权做多；不做空、不使用杠杆，每日只调仓一次。
 - 因子策略的开仓、减仓和清仓均使用限价单，买单挂 `MaxBid`、卖单挂 `MinAsk`；只有实际成交回报为 Maker 时才能按 0.05% 手续费计算，不能仅凭订单类型保证 Maker。
 - 风险调整收益：亏损仓位不主动平仓；日亏损 5% 或总回撤 12% 后停止开新仓，盈利仓位才按信号退出。
 - 可审计：`logs/events.jsonl` 记录信号、组合快照、订单成功/失败与风控退出。
@@ -30,7 +30,7 @@ main.py                         # demo / API 检查 / 单次或持续运行
   data_fetcher.py               # Binance 公共 1h K 线
   features.py                   # 15 个趋势/动量/波动特征
   model.py                      # XGBoost 推理、按资产模型与 fallback
-  factor_strategy.py            # gplearn 1852 日线横截面策略
+  factor_strategy.py            # AlphaAgent 因子 70 日线横截面策略
   signals.py                    # 旧版模型 + 技术因子信号
   ma_macd_strategy.py           # 纯技术指标 MA10/MA60 + MACD 策略
   risk_manager.py               # 置信度仓位、日亏损、总回撤
@@ -113,7 +113,7 @@ python3 -m scripts.train_final_models
 ```
 
 该命令按最终选择训练两个独立模型：BTC 使用 180 天窗口，ETH 使用 120 天窗口。
-运行时默认启用 `STRATEGY=ma_macd_xgb`，最终分数为 `60% XGBoost + 40% MA/MACD`；也可通过环境变量覆盖。
+运行时默认启用 `STRATEGY=alphaagent_70`，按前一日收盘数据计算因子并在下一交易日开盘调仓。
 
 当前一年 30 分钟数据的双费率回测：
 
