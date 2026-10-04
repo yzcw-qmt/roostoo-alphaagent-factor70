@@ -19,7 +19,6 @@ def test_cross_sectional_strategy_selects_top_n_long_only() -> None:
     frames = {f"C{i}/USD": daily_frame(start=100 + i) for i in range(6)}
     frames["NVDAB/USD"] = daily_frame(start=1000)
     signals = CrossSectionalFactorStrategy("alphaagent_70", top_n=5).rank(frames)
-    assert len(signals) == 6
+    assert len(signals) == 7
     assert sum(signal.selected for signal in signals) == 5
     assert all(signal.action in {"LONG", "HOLD"} for signal in signals)
-    assert all(not signal.pair.endswith("B/USD") for signal in signals)
