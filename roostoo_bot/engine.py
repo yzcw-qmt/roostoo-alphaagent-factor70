@@ -333,8 +333,8 @@ class TradingEngine:
                 if current_notional >= minimum:
                     self.executor.sell_limit(
                         pair, round_down(quantity, amount_precision),
-                        # A sell at or below the current bid is marketable.
-                        round_down(float(ticker["MaxBid"]), price_precision),
+                        # Ask-side passive quote: do not cross the spread.
+                        round_up(float(ticker["MinAsk"]), price_precision),
                     )
                 continue
 
@@ -344,18 +344,19 @@ class TradingEngine:
             if difference > 0:
                 buy_qty = round_down(difference / price, amount_precision)
                 if buy_qty > 0:
-                    # A buy at or above the current ask is marketable. Round
-                    # upward so price precision cannot move it below the ask.
+                    # Bid-side passive quote: do not cross the spread. Rounding
+                    # down keeps the buy at or below the current best bid.
                     self.executor.buy_limit(
                         pair, buy_qty,
-                        round_up(float(ticker["MinAsk"]), price_precision),
+                        round_down(float(ticker["MaxBid"]), price_precision),
                     )
             else:
                 sell_qty = round_down(min(quantity, -difference / price), amount_precision)
                 if sell_qty > 0:
                     self.executor.sell_limit(
                         pair, sell_qty,
-                        round_down(float(ticker["MaxBid"]), price_precision),
+                        # Ask-side passive quote: do not cross the spread.
+                        round_up(float(ticker["MinAsk"]), price_precision),
                     )
 
         self.bot_state.setdefault("factor_rebalance", {})["date"] = today
