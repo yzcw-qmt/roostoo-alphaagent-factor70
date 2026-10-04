@@ -14,7 +14,7 @@
 - 账户保护：带凭证运行时，`/v3/balance` 必须返回有效 `Wallet`；若返回 `null`、缺失或异常，Bot 会记录 `WALLET_UNAVAILABLE` 并停止产生信号/订单，避免以 0 净值误下单。
 - 测试模式：`DRY_RUN=true` 仍会读取 Roostoo 的余额、行情和空仓状态，但不会调用下单接口；没有凭证的离线 dry-run 才使用本地虚拟 USD 余额。
 - 横截面因子策略：`STRATEGY=alphaagent_70` 时，Bot 使用外部 Binance 日线 OHLCV，按 `Sum(Delta(close,1),20) / Sum(Abs(Delta(close,1)),20)` 计算过去 20 日方向性，在每日收盘后对 `TRADING_PAIRS` 中可交易资产排序，选取因子值最高的 5 个资产等权做多；不做空、不使用杠杆，每日只调仓一次。
-- 资产池过滤：Roostoo 的 `TradePairs` 同时包含股票代理标的；因子排名会排除名称以 `B` 结尾的股票代理，只在加密货币资产中选 Top 5。
+- 资产池：使用 Roostoo `TradePairs` 返回的完整可交易池，当前配置由 `.env` 中的 `TRADING_PAIRS` 控制。
 - 因子策略的开仓、减仓和清仓均使用限价单，买单挂 `MaxBid`、卖单挂 `MinAsk`；只有实际成交回报为 Maker 时才能按 0.05% 手续费计算，不能仅凭订单类型保证 Maker。
 - 风险调整收益：亏损仓位不主动平仓；日亏损 5% 或总回撤 12% 后停止开新仓，盈利仓位才按信号退出。
 - 可审计：`logs/events.jsonl` 记录信号、组合快照、订单成功/失败与风控退出。
