@@ -2,6 +2,7 @@ import hashlib
 import hmac
 
 from roostoo_bot.api_client import RoostooClient
+from roostoo_bot.engine import TradingEngine
 
 
 def test_official_signature_example() -> None:
@@ -23,3 +24,19 @@ def test_cancel_order_rejects_ambiguous_filters() -> None:
     else:
         raise AssertionError("Expected ValueError")
 
+
+def test_wallet_null_is_normalized_and_detected() -> None:
+    assert TradingEngine._wallet({"Success": True, "Wallet": None}) == {}
+    assert not TradingEngine._wallet_present({"Success": True, "Wallet": None})
+
+
+def test_wallet_data_shape_is_supported() -> None:
+    payload = {"Success": True, "Data": {"Wallet": {"USD": {"Free": 100}}}}
+    assert TradingEngine._wallet(payload) == {"USD": {"Free": 100}}
+    assert TradingEngine._wallet_present(payload)
+
+
+def test_short_positions_handles_missing_or_nested_positions() -> None:
+    assert TradingEngine._short_positions({"Success": True}) == []
+    positions = [{"Pair": "BTC/USD"}]
+    assert TradingEngine._short_positions({"Data": {"Positions": positions}}) == positions

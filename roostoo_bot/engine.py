@@ -10,6 +10,7 @@ from .config import Settings
 from .data_fetcher import BinanceDataFetcher
 from .executor import TradeExecutor, round_down
 from .features import build_features
+from .factor_strategy import CrossSectionalFactorStrategy, FactorSignal
 from .journal import Journal, StateStore
 from .model import DirectionModel, PairDirectionModel
 from .ma_macd_strategy import MaMacdSignalGenerator, MaMacdXGBSignalGenerator
@@ -47,7 +48,11 @@ class TradingEngine:
             settings.trailing_activation,
             settings.trailing_gap,
         )
-        if settings.strategy in {"ma_macd", "ma_macd_xgb"}:
+        self.factor_strategy: CrossSectionalFactorStrategy | None = None
+        if settings.strategy == "gplearn_1852":
+            self.factor_strategy = CrossSectionalFactorStrategy(settings.strategy, settings.factor_top_n)
+            self.signals = None
+        elif settings.strategy in {"ma_macd", "ma_macd_xgb"}:
             technical = MaMacdSignalGenerator(
                 atr_period=settings.atr_period,
                 n=settings.macd_extrema_lookback,
@@ -84,7 +89,41 @@ class TradingEngine:
 
     @staticmethod
     def _wallet(payload: dict[str, Any]) -> dict[str, Any]:
-        return payload.get("Wallet", {})
+        """Return a normalized wallet, never ``None``.
+
+        Roostoo can return ``Wallet: null`` when the portfolio is not
+        initialized or when the credential is for a different portfolio.
+        Treating that value as an empty, valid wallet would make the bot
+        report equity 0 and continue as if the account were tradable.
+        """
+        if not isinstance(payload, dict):
+            return {}
+        wallet = payload.get("Wallet")
+        if isinstance(wallet, dict):
+            return wallet
+        data = payload.get("Data")
+        if isinstance(data, dict) and isinstance(data.get("Wallet"), dict):
+            return data["Wallet"]
+        return {}
+
+    @staticmethod
+    def _wallet_present(payload: dict[str, Any]) -> bool:
+        """Whether the API supplied an actual wallet object."""
+        if not isinstance(payload, dict):
+            return False
+        if isinstance(payload.get("Wallet"), dict):
+            return True
+        data = payload.get("Data")
+        return isinstance(data, dict) and isinstance(data.get("Wallet"), dict)
+
+    @staticmethod
+    def _short_positions(payload: dict[str, Any]) -> list[dict[str, Any]]:
+        if not isinstance(payload, dict):
+            return []
+        positions = payload.get("Positions")
+        if positions is None and isinstance(payload.get("Data"), dict):
+            positions = payload["Data"].get("Positions")
+        return positions if isinstance(positions, list) else []
 
     def _equity(self, wallet: dict[str, Any], tickers: dict[str, Any], shorts: list[dict[str, Any]]) -> float:
         equity = sum(float(v.get("Free", 0)) + float(v.get("Lock", 0)) for k, v in wallet.items() if k == "USD")
@@ -238,16 +277,93 @@ class TradingEngine:
                 self.executor.open_short(pair, collateral)
             self._remember_trade(pair, "SHORT", signal.price, collateral / signal.price)
 
+    def _factor_rebalance(
+        self,
+        signals: list[FactorSignal],
+        wallet: dict[str, Any],
+        rules_all: dict[str, Any],
+        tickers: dict[str, Any],
+        equity: float,
+    ) -> None:
+        """Rebalance a daily long-only top-N factor portfolio with LIMIT orders."""
+        if not signals or equity <= 0:
+            return
+        today = datetime.now(timezone.utc).date().isoformat()
+        if self.bot_state.setdefault("factor_rebalance", {}).get("date") == today:
+            return
+        selected = [signal for signal in signals if signal.selected]
+        if not selected:
+            return
+        target_notional = equity / len(selected)
+        selected_pairs = {signal.pair for signal in selected}
+
+        for signal in signals:
+            pair = signal.pair
+            rules = rules_all.get(pair, {})
+            ticker = tickers.get(pair)
+            if not ticker or not rules.get("CanTrade", False):
+                continue
+            coin = pair.split("/")[0]
+            quantity = float(wallet.get(coin, {}).get("Free", 0))
+            price = float(ticker["LastPrice"])
+            current_notional = quantity * price
+            amount_precision = int(rules.get("AmountPrecision", 6))
+            price_precision = int(rules.get("PricePrecision", 2))
+            minimum = float(rules.get("MiniOrder", 0))
+
+            if pair not in selected_pairs:
+                if current_notional >= minimum:
+                    self.executor.sell_limit(
+                        pair, round_down(quantity, amount_precision),
+                        round_down(float(ticker["MinAsk"]), price_precision),
+                    )
+                continue
+
+            difference = target_notional - current_notional
+            if abs(difference) < minimum:
+                continue
+            if difference > 0:
+                buy_qty = round_down(difference / price, amount_precision)
+                if buy_qty > 0:
+                    self.executor.buy_limit(
+                        pair, buy_qty,
+                        round_down(float(ticker["MaxBid"]), price_precision),
+                    )
+            else:
+                sell_qty = round_down(min(quantity, -difference / price), amount_precision)
+                if sell_qty > 0:
+                    self.executor.sell_limit(
+                        pair, sell_qty,
+                        round_down(float(ticker["MinAsk"]), price_precision),
+                    )
+
+        self.bot_state.setdefault("factor_rebalance", {})["date"] = today
+        self.bot_state["factor_rebalance"]["selected"] = sorted(selected_pairs)
+        self.store.save(self.bot_state)
+
     def cycle(self) -> dict[str, Any]:
         exchange = self.client.exchange_info()
         tickers = self._ticker_map(self.client.ticker())
+        balance_payload: dict[str, Any] | None = None
         if self.settings.dry_run and not self.settings.api_key:
             wallet = {"USD": {"Free": 100000.0, "Lock": 0.0}}
             shorts_list: list[dict[str, Any]] = []
         else:
-            wallet = self._wallet(self.client.balance())
-            shorts_list = self.client.short_positions().get("Positions", [])
+            balance_payload = self.client.balance()
+            wallet = self._wallet(balance_payload)
+            shorts_list = self._short_positions(self.client.short_positions())
         equity = self._equity(wallet, tickers, shorts_list)
+        # A credentialed run must never trade against an absent wallet.  This
+        # also makes the current ``Wallet: null`` response visible in logs
+        # instead of silently producing an equity of zero.
+        if balance_payload is not None and not self._wallet_present(balance_payload):
+            self.journal.write(
+                "account_error",
+                reason="WALLET_UNAVAILABLE",
+                response=balance_payload,
+            )
+            return {"equity": equity, "halted": "WALLET_UNAVAILABLE", "signals": []}
+
         halt_reason = self.risk.update_equity(equity)
         shorts = {position["Pair"]: position for position in shorts_list}
         results: list[dict[str, Any]] = []
@@ -259,6 +375,30 @@ class TradingEngine:
             return {"equity": equity, "halted": halt_reason, "signals": []}
 
         rules_all = exchange.get("TradePairs", {})
+        if self.factor_strategy is not None:
+            candles_by_pair: dict[str, Any] = {}
+            for pair in self.settings.pairs:
+                try:
+                    if pair in rules_all and rules_all[pair].get("CanTrade", False):
+                        candles_by_pair[pair] = self.data.candles(pair, "1d", max(self.settings.candle_limit, 80))
+                except Exception as exc:
+                    self.log.warning("Factor data unavailable for %s: %s", pair, exc)
+                    self.journal.write("pair_error", pair=pair, error=str(exc))
+            factor_signals = self.factor_strategy.rank(candles_by_pair)
+            for signal in factor_signals:
+                self.journal.write(
+                    "factor_signal", pair=signal.pair, factor=signal.factor_value,
+                    rank=signal.rank, selected=signal.selected, price=signal.price,
+                    strategy=self.settings.strategy,
+                )
+            self._factor_rebalance(factor_signals, wallet, rules_all, tickers, equity)
+            return {
+                "equity": equity,
+                "halted": False,
+                "strategy": self.settings.strategy,
+                "signals": [signal.__dict__ for signal in factor_signals],
+            }
+
         candles_by_pair: dict[str, Any] = {}
         signals: list[Signal] = []
         for pair in self.settings.pairs:

@@ -31,7 +31,7 @@ class Settings:
     timeout_seconds: float = 15.0
     retries: int = 3
     # Final selected strategy: 60% XGBoost + 40% causal MA/MACD score.
-    strategy: str = "ma_macd_xgb"
+    strategy: str = "gplearn_1852"
     order_type: str = "LIMIT"
     limit_offset_bps: float = 0.0
 
@@ -41,6 +41,7 @@ class Settings:
     exit_short_threshold: float = 0.52
     model_weight: float = 0.60
     technical_weight: float = 0.40
+    factor_top_n: int = 5
 
     max_position_fraction: float = 0.30
     max_gross_exposure: float = 0.90
@@ -85,7 +86,8 @@ class Settings:
             pairs=pairs,
             dry_run=_bool("DRY_RUN", True),
             loop_interval_seconds=int(os.getenv("LOOP_INTERVAL_SECONDS", "1800")),
-            strategy=os.getenv("STRATEGY", "ma_macd_xgb").strip().lower(),
+            strategy=os.getenv("STRATEGY", "gplearn_1852").strip().lower(),
+            factor_top_n=int(os.getenv("FACTOR_TOP_N", "5")),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),
             long_threshold=_float("LONG_THRESHOLD", 0.62),
