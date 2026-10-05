@@ -294,29 +294,43 @@ class TradingEngine:
         rules_all: dict[str, Any],
         tickers: dict[str, Any],
         equity: float,
+        pending_pairs: set[str] | None = None,
     ) -> None:
         """Rebalance a daily long-only top-N factor portfolio with LIMIT orders."""
         if not signals or equity <= 0:
             return
         now = datetime.now(timezone.utc)
         today = now.date().isoformat()
+        state = self.bot_state.setdefault("factor_rebalance", {})
+        retry = bool(state.get("retry"))
+        last_attempt = float(state.get("last_attempt", 0.0) or 0.0)
         # Daily candles are UTC-calendar candles.  The backtest uses the
         # previous completed daily candle and rebalances at the next candle
         # open: UTC 00:00 (08:00 Hong Kong time).  A short window handles
         # normal loop jitter while preventing a late-starting bot from
         # silently rebalancing at an arbitrary time of day.
-        if now.hour != 0 or now.minute >= 30:
+        if (now.hour != 0 or now.minute >= 30) and not retry:
             return
-        if self.bot_state.setdefault("factor_rebalance", {}).get("date") == today:
+        if retry and now.timestamp() - last_attempt < 30 * 60:
+            return
+        if state.get("date") == today and not retry:
             return
         selected = [signal for signal in signals if signal.selected]
         if not selected:
             return
         target_notional = equity / len(selected)
         selected_pairs = {signal.pair for signal in selected}
+        pending_pairs = pending_pairs or set()
+        available_usd = float(wallet.get("USD", {}).get("Free", 0))
+        # Keep room for the 0.05% Maker commission and small price movement.
+        cash_buffer = 1.001
+        errors = False
 
         for signal in signals:
             pair = signal.pair
+            if pair in pending_pairs:
+                self.journal.write("factor_pending_skip", pair=pair)
+                continue
             rules = rules_all.get(pair, {})
             ticker = tickers.get(pair)
             if not ticker or not rules.get("CanTrade", False):
@@ -331,25 +345,38 @@ class TradingEngine:
 
             if pair not in selected_pairs:
                 if current_notional >= minimum:
-                    self.executor.sell_limit(
-                        pair, round_down(quantity, amount_precision),
-                        # Ask-side passive quote: do not cross the spread.
-                        round_up(float(ticker["MinAsk"]), price_precision),
-                    )
+                    try:
+                        self.executor.sell_limit(
+                            pair, round_down(quantity, amount_precision),
+                            # Ask-side passive quote: do not cross the spread.
+                            round_up(float(ticker["MinAsk"]), price_precision),
+                        )
+                    except Exception as exc:
+                        errors = True
+                        self.log.warning("Factor sell failed for %s: %s", pair, exc)
                 continue
 
             difference = target_notional - current_notional
             if abs(difference) < minimum:
                 continue
             if difference > 0:
-                buy_qty = round_down(difference / price, amount_precision)
+                # Never spend more than the currently free USD balance. The
+                # old implementation used the same stale equity target for
+                # every pair, so pending orders could starve later buys.
+                spend = min(difference, available_usd / cash_buffer)
+                buy_qty = round_down(spend / price, amount_precision)
                 if buy_qty > 0:
                     # Bid-side passive quote: do not cross the spread. Rounding
                     # down keeps the buy at or below the current best bid.
-                    self.executor.buy_limit(
-                        pair, buy_qty,
-                        round_down(float(ticker["MaxBid"]), price_precision),
-                    )
+                    order_price = round_down(float(ticker["MaxBid"]), price_precision)
+                    if buy_qty * order_price < minimum:
+                        continue
+                    try:
+                        self.executor.buy_limit(pair, buy_qty, order_price)
+                        available_usd -= buy_qty * order_price * cash_buffer
+                    except Exception as exc:
+                        errors = True
+                        self.log.warning("Factor buy failed for %s: %s", pair, exc)
             else:
                 sell_qty = round_down(min(quantity, -difference / price), amount_precision)
                 if sell_qty > 0:
@@ -359,9 +386,29 @@ class TradingEngine:
                         round_up(float(ticker["MinAsk"]), price_precision),
                     )
 
-        self.bot_state.setdefault("factor_rebalance", {})["date"] = today
-        self.bot_state["factor_rebalance"]["selected"] = sorted(selected_pairs)
+        state["last_attempt"] = now.timestamp()
+        state["selected"] = sorted(selected_pairs)
+        state["retry"] = errors
+        if not errors:
+            state["date"] = today
         self.store.save(self.bot_state)
+
+    def _pending_factor_pairs(self) -> set[str]:
+        """Return pairs with open orders so a rebalance does not duplicate them."""
+        query = getattr(self.client, "query_order", None)
+        if not callable(query):
+            return set()
+        try:
+            payload = query(pending_only=1, limit=100)
+        except Exception as exc:
+            self.log.warning("Could not query pending orders: %s", exc)
+            return set()
+        orders = payload.get("OrderMatched", []) if isinstance(payload, dict) else []
+        return {
+            str(order.get("Pair"))
+            for order in orders
+            if isinstance(order, dict) and order.get("Pair")
+        }
 
     def cycle(self) -> dict[str, Any]:
         exchange = self.client.exchange_info()
@@ -413,7 +460,10 @@ class TradingEngine:
                     rank=signal.rank, selected=signal.selected, price=signal.price,
                     strategy=self.settings.strategy,
                 )
-            self._factor_rebalance(factor_signals, wallet, rules_all, tickers, equity)
+            self._factor_rebalance(
+                factor_signals, wallet, rules_all, tickers, equity,
+                self._pending_factor_pairs(),
+            )
             return {
                 "equity": equity,
                 "halted": False,
