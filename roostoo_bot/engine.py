@@ -325,6 +325,7 @@ class TradingEngine:
         # Keep room for the 0.05% Maker commission and small price movement.
         cash_buffer = 1.001
         errors = False
+        waiting_for_exits = False
 
         # When changing from five holdings to three, liquidate dropped
         # assets first so their filled proceeds can fund the new 33.33%
@@ -338,6 +339,8 @@ class TradingEngine:
         for signal in ordered_signals:
             pair = signal.pair
             if pair in pending_pairs:
+                if pair not in selected_pairs:
+                    waiting_for_exits = True
                 self.journal.write("factor_pending_skip", pair=pair)
                 continue
             rules = rules_all.get(pair, {})
@@ -364,9 +367,18 @@ class TradingEngine:
                                 price_precision,
                             ),
                         )
+                        # A Maker sell does not release USD until it fills.
+                        # Do not fund new targets from this notional yet.
+                        waiting_for_exits = True
                     except Exception as exc:
                         errors = True
+                        waiting_for_exits = True
                         self.log.warning("Factor sell failed for %s: %s", pair, exc)
+                continue
+
+            # Complete all exits before submitting any new buys. This avoids
+            # assuming that a passive sell has filled immediately.
+            if waiting_for_exits:
                 continue
 
             difference = target_notional - current_notional
@@ -407,8 +419,8 @@ class TradingEngine:
 
         state["last_attempt"] = now.timestamp()
         state["selected"] = sorted(selected_pairs)
-        state["retry"] = errors
-        if not errors:
+        state["retry"] = errors or waiting_for_exits
+        if not errors and not waiting_for_exits:
             state["date"] = today
         self.store.save(self.bot_state)
 
