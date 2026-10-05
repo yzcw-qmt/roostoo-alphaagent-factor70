@@ -107,12 +107,12 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     daily = load_daily(Path("data/history"))
-    results = simulate_segments(daily, factor_targets(daily, args.strategy, 5))
+    results = simulate_segments(daily, factor_targets(daily, args.strategy, 3))
     payload = {
         "strategy": args.strategy,
         "assets": sorted(daily),
-        "requested_top_n": 5,
-        "effective_top_n": min(5, len(daily)),
+        "requested_top_n": 3,
+        "effective_top_n": min(3, len(daily)),
         "fee_rate": 0.0005,
         "segment_days": 15,
         "segments": results,

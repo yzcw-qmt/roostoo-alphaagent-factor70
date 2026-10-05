@@ -41,7 +41,7 @@ class Settings:
     exit_short_threshold: float = 0.52
     model_weight: float = 0.60
     technical_weight: float = 0.40
-    factor_top_n: int = 5
+    factor_top_n: int = 3
 
     max_position_fraction: float = 0.30
     max_gross_exposure: float = 0.90
@@ -87,7 +87,7 @@ class Settings:
             dry_run=_bool("DRY_RUN", True),
             loop_interval_seconds=int(os.getenv("LOOP_INTERVAL_SECONDS", "1800")),
             strategy=os.getenv("STRATEGY", "alphaagent_70").strip().lower(),
-            factor_top_n=int(os.getenv("FACTOR_TOP_N", "5")),
+            factor_top_n=int(os.getenv("FACTOR_TOP_N", "3")),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),
             long_threshold=_float("LONG_THRESHOLD", 0.62),

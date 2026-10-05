@@ -52,7 +52,7 @@ def alphaagent_70(frame: pd.DataFrame) -> float:
 class CrossSectionalFactorStrategy:
     """Daily top-N long-only cross-sectional strategy."""
 
-    def __init__(self, name: str = "alphaagent_70", top_n: int = 5) -> None:
+    def __init__(self, name: str = "alphaagent_70", top_n: int = 3) -> None:
         if name != "alphaagent_70":
             raise ValueError(f"Unsupported factor strategy: {name}")
         self.name = name
