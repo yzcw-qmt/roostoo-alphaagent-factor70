@@ -348,8 +348,12 @@ class TradingEngine:
                     try:
                         self.executor.sell_limit(
                             pair, round_down(quantity, amount_precision),
-                            # Ask-side passive quote: do not cross the spread.
-                            round_up(float(ticker["MinAsk"]), price_precision),
+                            # Quote one tick above the ask to avoid crossing
+                            # if the book moves between ticker and order.
+                            round_up(
+                                float(ticker["MinAsk"]) + 10 ** (-price_precision),
+                                price_precision,
+                            ),
                         )
                     except Exception as exc:
                         errors = True
@@ -366,9 +370,12 @@ class TradingEngine:
                 spend = min(difference, available_usd / cash_buffer)
                 buy_qty = round_down(spend / price, amount_precision)
                 if buy_qty > 0:
-                    # Bid-side passive quote: do not cross the spread. Rounding
-                    # down keeps the buy at or below the current best bid.
-                    order_price = round_down(float(ticker["MaxBid"]), price_precision)
+                    # Quote one tick below the bid. A best-bid order can still
+                    # become a taker when the book moves before submission.
+                    order_price = round_down(
+                        max(10 ** (-price_precision), float(ticker["MaxBid"]) - 10 ** (-price_precision)),
+                        price_precision,
+                    )
                     if buy_qty * order_price < minimum:
                         continue
                     try:
@@ -382,8 +389,11 @@ class TradingEngine:
                 if sell_qty > 0:
                     self.executor.sell_limit(
                         pair, sell_qty,
-                        # Ask-side passive quote: do not cross the spread.
-                        round_up(float(ticker["MinAsk"]), price_precision),
+                        # Quote one tick above the ask to avoid crossing.
+                        round_up(
+                            float(ticker["MinAsk"]) + 10 ** (-price_precision),
+                            price_precision,
+                        ),
                     )
 
         state["last_attempt"] = now.timestamp()

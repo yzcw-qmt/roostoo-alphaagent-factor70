@@ -34,6 +34,13 @@ class TradeExecutor:
             return result
         try:
             result = call()
+            detail = result.get("OrderDetail", {}) if isinstance(result, dict) else {}
+            if isinstance(detail, dict) and detail.get("Role") == "TAKER":
+                self.log.warning(
+                    "Order matched as TAKER despite LIMIT type: %s %s",
+                    kind,
+                    details,
+                )
             self.journal.write("order_success", kind=kind, request=details, response=result)
             return result
         except Exception as exc:
