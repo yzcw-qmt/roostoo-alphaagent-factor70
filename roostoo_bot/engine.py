@@ -326,7 +326,16 @@ class TradingEngine:
         cash_buffer = 1.001
         errors = False
 
-        for signal in signals:
+        # When changing from five holdings to three, liquidate dropped
+        # assets first so their filled proceeds can fund the new 33.33%
+        # targets. The previous rank order bought selected assets first.
+        ordered_signals = [
+            signal for signal in signals if not signal.selected
+        ] + [
+            signal for signal in signals if signal.selected
+        ]
+
+        for signal in ordered_signals:
             pair = signal.pair
             if pair in pending_pairs:
                 self.journal.write("factor_pending_skip", pair=pair)
