@@ -311,7 +311,11 @@ class TradingEngine:
         # silently rebalancing at an arbitrary time of day.
         if (now.hour != 0 or now.minute >= 30) and not retry:
             return
-        if retry and now.timestamp() - last_attempt < 30 * 60:
+        # The aligned half-hour loop can run a few seconds before the exact
+        # 30-minute mark. Leave tolerance so an exit-recovery retry is not
+        # skipped at the next scheduled cycle.
+        retry_cooldown = max(60, self.settings.loop_interval_seconds - 120)
+        if retry and now.timestamp() - last_attempt < retry_cooldown:
             return
         if state.get("date") == today and not retry:
             return
