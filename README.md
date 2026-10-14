@@ -109,6 +109,20 @@ python scripts/summarize_factor70_csv.py
 ```
 
 To reproduce the **underlying backtest**, the repository still needs the historical price source, universe and availability rules, signal-generation code, fill assumptions, and a command that generates the committed daily CSV from raw inputs. Until then, the return figures should be read as results supplied in this repository, not an independently reproduced strategy test.
+## Limitations
+
+- **Data verification:** Missing raw prices and backtest generation code limit reproducibility. Some supplied files contain inconsistencies that require reconciliation.
+- **Performance robustness:** Full-period maximum drawdown reaches 69.74%, and the reported 2026 return depends heavily on one exceptional day that requires verification.
+- **Portfolio and execution risks:** Holding up to three assets creates concentration risk. The strategy can remain invested when all scores are negative, while unfilled limit orders may cause live results to differ from the backtest.
+
+## Future Improvements
+
+- Complete the reproducible backtest pipeline, reconcile data inconsistencies, and verify unusual returns.
+- Conduct out-of-sample and walk-forward tests against consistent benchmarks.
+- Evaluate cash allocation during weak signals, volatility-based sizing, and clearer rules for reducing exposure.
+- Model partial fills, slippage, and execution delays, and test ways to reduce unnecessary turnover.
+
+These are planned improvements and have not yet been validated.
 
 ## References
 
