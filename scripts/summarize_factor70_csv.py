@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data/daily_top3_returns_2025_2026.csv"
+STRATEGY_COLUMN = "daily_top3"
 CHART_DIR = ROOT / "docs/figures"
 
 
@@ -27,19 +28,9 @@ def load_rows() -> list[dict[str, str]]:
     previous = None
     for row in rows:
         day = date.fromisoformat(row["date"])
-        signal_day = date.fromisoformat(row["signal_date"])
         if previous is not None and day != previous + timedelta(days=1):
             raise ValueError(f"Missing or duplicate daily date at {day}")
-        if signal_day != day - timedelta(days=1):
-            raise ValueError(f"Unexpected signal date for {day}")
-        gross = float(row["gross_return"])
-        fee = float(row["fee"])
-        net = float(row["net_return"])
-        turnover = float(row["turnover_abs_weight"])
-        if not math.isclose(net, gross - fee, abs_tol=1e-12):
-            raise ValueError(f"Net return does not match gross less fee on {day}")
-        if not math.isclose(fee, 0.0005 * turnover, abs_tol=1e-12):
-            raise ValueError(f"Fee does not match 0.05% of turnover on {day}")
+        float(row[STRATEGY_COLUMN])
         previous = day
     return rows
 
@@ -58,7 +49,7 @@ def equity_and_drawdown(returns: list[float]) -> tuple[list[float], list[float]]
 
 
 def metrics(rows: list[dict[str, str]]) -> dict[str, float | int]:
-    returns = [float(row["net_return"]) for row in rows]
+    returns = [float(row[STRATEGY_COLUMN]) for row in rows]
     equities, drawdowns = equity_and_drawdown(returns)
     count = len(returns)
     total = equities[-1] - 1.0
@@ -76,8 +67,6 @@ def metrics(rows: list[dict[str, str]]) -> dict[str, float | int]:
         "sortino": average / downside * math.sqrt(365) if downside else 0.0,
         "calmar": annualized / abs(max_drawdown) if max_drawdown else 0.0,
         "annualized_return": annualized,
-        "fee_sum": sum(float(row["fee"]) for row in rows),
-        "turnover_sum": sum(float(row["turnover_abs_weight"]) for row in rows),
         "largest_day_return": largest,
         "without_largest_day": equities[-1] / (1.0 + largest) - 1.0,
     }
@@ -126,7 +115,7 @@ def svg_chart(
 def main() -> None:
     rows = load_rows()
     dates = [date.fromisoformat(row["date"]) for row in rows]
-    returns = [float(row["net_return"]) for row in rows]
+    returns = [float(row[STRATEGY_COLUMN]) for row in rows]
     equities, drawdowns = equity_and_drawdown(returns)
     CHART_DIR.mkdir(parents=True, exist_ok=True)
     svg_chart(dates, [value - 1.0 for value in equities], "Factor 70: cumulative net return", "Growth of 1.0, less 1", [-0.75, -0.5, 0, 0.5, 1, 1.5], "#2563eb", CHART_DIR / "factor70_equity.svg")

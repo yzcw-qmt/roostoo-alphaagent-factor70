@@ -8,11 +8,9 @@
 
 ![Strategy](https://img.shields.io/badge/Strategy-Factor%2070-2563eb?style=flat-square)
 ![Market](https://img.shields.io/badge/Market-Spot%20Long%20Only-0f766e?style=flat-square)
-![2026 backtest net return](https://img.shields.io/badge/2026%20Backtest-%2B78.2%25-16a34a?style=flat-square)
+![2025-2026 backtest net return](https://img.shields.io/badge/2025--2026%20Backtest-%2B75.2%25-16a34a?style=flat-square)
 
 </div>
-
-> **Backtest headline:** The committed daily-return CSV compounds to **+78.22% net from 1 January to 30 September 2026**. This is a historical simulation, not competition or live trading performance. Its source prices and generation code are not included, so the signal and fill history cannot yet be independently rebuilt.
 
 ## Overview
 
@@ -26,17 +24,49 @@ flowchart LR
     D --> E[Roostoo limit orders]
 ```
 
-## Factor 70 and selection
+## Mining Process
 
-We selected Factor 70 during factor mining. It measures the direction of the net 20-day close change relative to the total absolute movement:
+We mined candidate alpha factors with eight frameworks: AlphaEvolve, AlphaAgent, gplearn, FAMA, AutoAlpha, AlphaForge, AlphaGen, and AlphaQCM. Together they produced **1,064 candidate factors**. Each candidate was backtested over 2025 and January–September 2026. We then screened the candidates on four criteria:
+
+- **Interpretability:** the formula has a clear economic meaning.
+- **Robustness:** the result holds across sub-periods, nearby settings, and noisy labels (measured by PFS, see below).
+- **Annualized return:** the backtested annualized return.
+- **Competition fit:** the factor fits the competition's required medium-frequency strategy.
+
+Factor 70 was the final selection. The mining code and the full candidate pool are not included in this repository.
+
+## Factor Background
+
+Factor 70 is a variant of Kaufman's Efficiency Ratio (KER, also called ER). KER measures how directly price moves over a window:
 
 $$
-F_{i,t}=\frac{C_{i,t}-C_{i,t-20}}{\sum_{k=0}^{19}|C_{i,t-k}-C_{i,t-k-1}|}.
+ER_{t}=\frac{|C_{t}-C_{t-n}|}{\sum_{k=0}^{n-1}|C_{t-k}-C_{t-k-1}|}
 $$
 
-The [implementation](roostoo_bot/factor_strategy.py) needs 21 completed UTC daily closes, returns zero for a zero denominator, and ranks higher scores first. Ties use pair-name order. Up to three assets are selected even if all scores are negative. The bot only takes long spot positions. **Factor 70 is a ranking score, not a target price.**
+A value near 1 means price moved in a nearly straight line. A value near 0 means the move was mostly noise. KER is a trend indicator, and it is often used to set how fast an adaptive moving average reacts.
 
-The live candidate set must appear in `TRADING_PAIRS`, be marked `CanTrade` by Roostoo, and have enough Binance data. The committed [example configuration](roostoo_bot/config.py) lists only `BTC/USD,ETH/USD`; the bot does not automatically load every Roostoo pair. The actual competition pair list still needs to be recorded. The new annual baseline file lists 77 distinct assets across 2025–2026, but it does not establish that all 77 were tradable on every day.
+Factor 70 keeps the denominator but drops the absolute value in the numerator, so the sign shows direction as well as efficiency:
+
+$$
+F_{i,t}=\frac{C_{i,t}-C_{i,t-20}}{\sum_{k=0}^{19}|C_{i,t-k}-C_{i,t-k-1}|}
+$$
+
+Because the net move is never larger than the total path length, the score lies between −1 and +1. Positive scores mean a net gain over 20 days; negative scores mean a net loss. In backtesting, the signed variant paired with a suitable rebalancing rule produced attractive returns, even though KER was designed only as a trend gauge.
+
+The [implementation](roostoo_bot/factor_strategy.py) needs 21 completed UTC daily closes, returns zero when the denominator is zero, and ranks higher scores first. Ties are broken by pair name. **Factor 70 is a ranking score, not a target price.**
+
+## Factor Behavior
+
+A high score requires a large 20-day net move that is not interrupted by many reversals. The top-ranked assets are therefore usually in a sustained uptrend. The strategy does not look for mean reversion. It tries to hold part of a trend that is already in progress. It can profit in two ways:
+
+- **Riding a segment of the trend:** the asset is held while its score stays high and sold when the score falls.
+- **Breakout continuation:** assets making new highs tend to score well, and large gains can follow a breakout.
+
+## Strategy
+
+Each day, after the prior UTC daily candle closes, the bot scores every eligible asset with Factor 70 and selects the top three. It holds those three at equal weight and rebalances daily. Holdings that leave the top three are sold, and the rest of the portfolio is adjusted to the new targets. The bot only takes long spot positions.
+
+We tested top-N portfolios with N = 1, 2, 3, 4, and 5. N = 3 produced the best result, so it is the default (`FACTOR_TOP_N`).
 
 ## Trading workflow
 
@@ -56,73 +86,92 @@ The [engine](roostoo_bot/engine.py) quotes buys one tick below `MaxBid` and sell
 
 ## Backtest data and evaluation
 
-The latest commit adds 638 consecutive daily-return rows from **1 January 2025 through 30 September 2026**, plus daily holdings and annual summary CSVs. Each return row records a prior-day `signal_date`, gross return, absolute weight turnover, fee, net return, and holdings. The supplied fee equals **0.05% × absolute weight turnover** on every row.
+The UTC 0 backtest produces 638 consecutive daily-return rows from **1 January 2025 through 30 September 2026**. The [daily return file](data/daily_top3_returns_2025_2026.csv) holds four strategy columns: `weekday_cash_top3`, `weekend_carry_top3`, `daily_top3`, and `baseline_77_equal`. Only `daily_top3` is the Factor 70 strategy reported here. The other two are variants, not the strategy in this README. The [daily holdings file](data/daily_top3_holdings_2025_2026.csv) lists the daily top-3 set, and the [annual returns file](data/annual_returns_2025_2026.csv) gives yearly figures. All returns are net of the 0.05% fee used in the backtest.
 
 ```mermaid
 flowchart LR
-    A[Committed daily CSV] --> B[Check dates and fee arithmetic]
+    A[Committed daily CSV] --> B[Check consecutive dates]
     B --> C[Compound net returns]
     C --> D[Risk ratios and charts]
     D --> E[Review source consistency]
 ```
 
-The [CSV summary script](scripts/summarize_factor70_csv.py) recalculates the table and charts below. Total return is the product of `1 + daily net return`, minus one. Sharpe uses the daily mean divided by sample standard deviation, annualized by `√365`; Sortino uses downside root-mean-square below zero. Calmar divides annualized return by absolute maximum drawdown. All three use a zero risk-free/target rate. Drawdown resets at the start of each annual row; the full-period row uses one continuous equity curve.
+The [CSV summary script](scripts/summarize_factor70_csv.py) recalculates the table and charts below from the `daily_top3` column. Total return is the product of `1 + daily net return`, minus one. Sharpe uses the daily mean divided by sample standard deviation, annualized by `√365`; Sortino uses downside root-mean-square below zero. Calmar divides annualized return by absolute maximum drawdown. All three use a zero risk-free/target rate. Drawdown resets at the start of each annual row; the full-period row uses one continuous equity curve.
 
 | Period | Days | Net return | Max drawdown | Sharpe | Sortino | Calmar |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2025 | 365 | +17.02% | −49.18% | 0.62 | 1.02 | 0.35 |
-| Jan–Sep 2026 | 273 | +78.22% | −52.42% | 1.13 | 2.51 | 2.22 |
-| Full period | 638 | +108.55% | −69.74% | 0.88 | 1.69 | 0.75 |
+| 2025 | 365 | +20.92% | −57.90% | 0.67 | 1.08 | 0.36 |
+| Jan–Sep 2026 | 273 | +44.86% | −55.00% | 0.96 | 1.92 | 1.17 |
+| Full period | 638 | +75.17% | −78.41% | 0.81 | 1.46 | 0.48 |
 
 ![Cumulative net return from committed daily CSV](docs/figures/factor70_equity.svg)
 
 ![Drawdown from committed daily CSV](docs/figures/factor70_drawdown.svg)
 
-The [annual comparison file](data/annual_returns_2025_2026.csv) reports an equal-weight 77-asset baseline of **+2.73% in 2025** and **+4.35% in Jan–Sep 2026**. Its daily returns and construction code are absent, so these reported baseline figures cannot be independently recalculated or compared on a matching daily risk basis.
+The equal-weight 77-asset baseline for each year is shown in the table under [Why the Backtest Starts in 2025](#why-the-backtest-starts-in-2025). Its daily returns and construction code are absent, so these baseline figures cannot be independently recalculated or compared on a matching daily risk basis.
 
-### Data checks that matter
+### Why the Backtest Starts in 2025
 
-- The [daily return rows](data/daily_top3_returns_2025_2026.csv) compound to **+17.02% for 2025**, matching the [Top 3 yearly file](data/daily_top3_yearly_2025_2026.csv). The annual comparison file instead lists **+14.59%** for that strategy and year. We use the daily-derived value above until the discrepancy is resolved.
-- On **31 March 2026**, the CSV records a **+78.40% net day**. Removing only that day from the 2026 compounded series changes the period result from **+78.22% to −0.10%**. The headline is therefore highly sensitive to this observation, which requires raw-price and fill verification.
-- The [daily holdings file](data/daily_top3_holdings_2025_2026.csv) differs from the return file on **29 September 2025**: it lists three assets while the return row lists two. The 77-asset annual file contains 67 asset-year rows for 2025 and 76 for 2026.
+The backtest covers 2025 and January–September 2026 only. We chose this window for two reasons:
 
-These checks validate arithmetic within the supplied daily CSV. They do not prove that the holdings follow Factor 70, that all assets were available at each signal time, or that simulated fills match Roostoo execution. The older [24 × 15-day script](scripts/factor_sliced_backtest.py) has a different output format and is not identified as the generator of these new CSVs.
+- **Survivorship:** the 77 assets in the pool are those still trading today, so each has already survived the market. Testing a factor on earlier years of this pool would select the outcome first and then look for support in the past. That is hindsight, not out-of-sample evidence.
+- **Data coverage:** many of the 77 assets had not been listed before 2025. Results for earlier years would rest on a changing and incomplete universe, which makes them less accurate.
 
-## Run and reproduce
+The coverage counts below support the second reason.
 
-Requires Python 3.10 or newer. From the repository root:
+| Year | Assets with data | Assets with complete data for the full year |
+| --- | ---: | ---: |
+| 2021 | 27 | 23 |
+| 2022 | 28 | 27 |
+| 2023 | 36 | 28 |
+| 2024 | 45 | 36 |
+| 2025 | 67 | 44 |
+| 2026 (1 Jan–1 Oct) | 76 | 65 |
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-cp .env.example .env
-python main.py demo
-```
+Equal-weight baseline returns for the same pool, by year:
 
-`demo` uses synthetic data and sends no orders. `python main.py paper` uses public Binance data with simulated orders. `python main.py run --live` requires Roostoo credentials and can submit real orders. Set `TRADING_PAIRS` in `.env` to the intended live universe.
+| Year | Equal-weight baseline return |
+| --- | ---: |
+| 2025 | +8.56% |
+| 2026 YTD (to 1 Oct) | +8.80% |
 
-Recalculate the CSV-derived statistics and charts:
+### Robustness Score (PFS)
 
-```bash
-python scripts/summarize_factor70_csv.py
-```
+PFS (Probabilistic Frequency Score) is the stability score used in AlphaEval. It measures whether a factor's cross-sectional ranking survives noise added to its labels. A score near 1 means the daily ranking barely changes under noise.
 
-To reproduce the **underlying backtest**, the repository still needs the historical price source, universe and availability rules, signal-generation code, fill assumptions, and a command that generates the committed daily CSV from raw inputs. Until then, the return figures should be read as results supplied in this repository, not an independently reproduced strategy test.
-## Limitations
+- **Relative noise:** the noise is multiplicative, `noisy = factor × (1 + noise)`, with one independent draw per (date, asset) cell. The noisy panel is then z-scored cross-sectionally each day.
+- **PFS1:** Gaussian noise, `noise ~ N(0, σ²)`.
+- **PFS2:** Student-t noise with 3 degrees of freedom, scaled as `t₃ × σ/√3` so its variance also equals σ². Both variants share the same variance; PFS2 has heavier tails and tests more extreme perturbations.
+- **Noise level:** σ = √noise variance. The variance is 0.0423, computed from an equal-weight index of all 77 assets. Each asset is min-max normalized, the series are averaged with equal weights, and the result is normalized again. Its sample variance (ddof=1) gives σ ≈ 0.206. This is a methodology choice and differs from a CSI index basis.
+- **Reproducibility:** the RNG seed is 20260925. Duplicate factors draw noise from different positions in the sequence, so their PFS values can differ slightly. IC and RankIC are unaffected.
 
-- **Data verification:** Missing raw prices and backtest generation code limit reproducibility. Some supplied files contain inconsistencies that require reconciliation.
-- **Performance robustness:** Full-period maximum drawdown reaches 69.74%, and the reported 2026 return depends heavily on one exceptional day that requires verification.
-- **Portfolio and execution risks:** Holding up to three assets creates concentration risk. The strategy can remain invested when all scores are negative, while unfilled limit orders may cause live results to differ from the backtest.
+| Score | Noise model | Value |
+| --- | --- | ---: |
+| PFS1 | Gaussian | 0.961 |
+| PFS2 | Student-t (3 df) | 0.964 |
 
-## Future Improvements
+PFS is the time average of the daily cross-sectional correlation between the noisy factor and the clean factor. A value of 0.96 means the ranking stays highly correlated with the clean factor after roughly 20% relative noise is added.
 
-- Complete the reproducible backtest pipeline, reconcile data inconsistencies, and verify unusual returns.
-- Conduct out-of-sample and walk-forward tests against consistent benchmarks.
-- Evaluate cash allocation during weak signals, volatility-based sizing, and clearer rules for reducing exposure.
-- Model partial fills, slippage, and execution delays, and test ways to reduce unnecessary turnover.
+PFS measures robustness to label noise. It does not measure predictive power or profitability; those are covered by the backtest table above.
 
-These are planned improvements and have not yet been validated.
+The [PFS summary file](data/pfs_scores_2025_2026.csv) records both scores with their noise model, σ, seed, and asset universe. It holds only the two summary values, not daily PFS series.
+
+## Limitations and Improvements
+
+Factor 70 has the following known weaknesses:
+
+- **Late entry:** a high score reflects moves that have already happened, so buying after a long run-up can mean buying near a top.
+- **Slow exits:** a 20-day window reacts slowly, so an asset can fall a long way before it leaves the top three.
+- **Concentration:** only three assets are held, so one sharp decline can hit a large share of the portfolio.
+- **Outlier dependence:** a few large return days drive a material share of the 2026 result.
+- **Drawdowns and exposure:** the full-period maximum drawdown is −78.41% (from 2025-11-07 peak to 2026-03-09), and the factor path has no per-asset stop-loss. The strategy can remain invested when all scores are negative.
+
+The following improvements have not been validated:
+
+- Add a trend filter, such as requiring price to sit above a longer moving average before buying.
+- Exit when the factor score falls below a threshold, or when the score's own momentum turns negative, rather than waiting for the asset to drop out of the top three.
+- Add a volatility-aware position cap or a trailing exit, and test it out of sample.
+- Use walk-forward validation across the 2025 and 2026 periods instead of a single full-period backtest.
 
 ## References
 

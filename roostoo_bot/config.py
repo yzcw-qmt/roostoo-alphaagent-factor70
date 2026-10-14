@@ -30,22 +30,13 @@ class Settings:
     request_limit_per_minute: int = 28
     timeout_seconds: float = 15.0
     retries: int = 3
-    # Final selected strategy: 60% XGBoost + 40% causal MA/MACD score.
     strategy: str = "alphaagent_70"
     order_type: str = "LIMIT"
     limit_offset_bps: float = 0.0
 
-    long_threshold: float = 0.62
-    short_threshold: float = 0.38
-    exit_long_threshold: float = 0.48
-    exit_short_threshold: float = 0.52
-    model_weight: float = 0.60
-    technical_weight: float = 0.40
     factor_top_n: int = 3
 
     max_position_fraction: float = 0.30
-    max_gross_exposure: float = 0.90
-    max_net_exposure: float = 0.60
     kelly_fraction: float = 0.30
     fallback_position_fraction: float = 0.10
     stop_loss: float = 0.0
@@ -54,20 +45,7 @@ class Settings:
     trailing_activation: float = 0.03
     trailing_gap: float = 0.025
     min_notional_buffer: float = 1.05
-    cooldown_minutes: int = 55
-    macd_extrema_lookback: int = 20
-    atr_period: int = 14
-    extrema_k: float = 1.5
-    extrema_risk_pct: float = 0.02
-    dynamic_extrema_n: bool = False
-    correlation_window: int = 168
-    correlation_threshold: float = 0.70
-    same_direction_risk_multiplier: float = 0.85
-    opposite_direction_risk_multiplier: float = 0.75
 
-    model_path: Path = Path("models/xgb_30m_multi.json")
-    btc_model_path: Path = Path("models/xgb_btc_30m_180d.json")
-    eth_model_path: Path = Path("models/xgb_eth_30m_120d.json")
     state_path: Path = Path("data/state.json")
     log_dir: Path = Path("logs")
 
@@ -90,12 +68,6 @@ class Settings:
             factor_top_n=int(os.getenv("FACTOR_TOP_N", "3")),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),
-            long_threshold=_float("LONG_THRESHOLD", 0.62),
-            short_threshold=_float("SHORT_THRESHOLD", 0.38),
-            model_weight=_float("MODEL_WEIGHT", 0.60),
-            model_path=Path(os.getenv("MODEL_PATH", "models/xgb_30m_multi.json")),
-            btc_model_path=Path(os.getenv("BTC_MODEL_PATH", "models/xgb_btc_30m_180d.json")),
-            eth_model_path=Path(os.getenv("ETH_MODEL_PATH", "models/xgb_eth_30m_120d.json")),
         )
 
     def validate_live(self) -> None:

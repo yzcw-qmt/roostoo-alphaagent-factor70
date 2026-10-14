@@ -12,10 +12,9 @@ def test_offline_cycle(tmp_path) -> None:
         pairs=("BTC/USD",),
         state_path=tmp_path / "state.json",
         log_dir=tmp_path / "logs",
-            model_path=tmp_path / "missing.json",
-            dry_run=True,
-            strategy="ma_macd_xgb",
-        )
+        dry_run=True,
+        strategy="alphaagent_70",
+    )
     engine = TradingEngine(settings, DemoRoostooClient(settings.pairs), DemoDataFetcher())
     result = engine.cycle()
     assert result["equity"] == 100000
