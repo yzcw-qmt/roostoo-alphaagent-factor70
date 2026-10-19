@@ -325,7 +325,7 @@ class TradingEngine:
             "equity": equity,
             "halted": False,
             "strategy": self.settings.strategy,
-            "signals": [signal.__dict__ for signal in factor_signals],
+            "signals": [{**signal.__dict__, "action": signal.action} for signal in factor_signals],
         }
 
     def run_forever(self) -> None:

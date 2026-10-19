@@ -1,4 +1,5 @@
 .env
+.DS_Store
 .venv/
 __pycache__/
 *.py[cod]
@@ -7,6 +8,8 @@ __pycache__/
 htmlcov/
 data/*.json
 data/history/
+data/research/factor70_oct_candles/
+data/research/roostoo_exchange_info_*.json
 logs/*
 models/*.json
 reports/

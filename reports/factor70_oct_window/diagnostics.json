@@ -1,0 +1,1097 @@
+{
+  "original_top3": {
+    "parameters": {
+      "spike_limit": null,
+      "min_score": -1.0,
+      "exit_drop": null,
+      "exit_anchor": "entry",
+      "min_qualifying": 1,
+      "fee_rate": 0.0005,
+      "slippage_rate": 0.0,
+      "market_exit_fee_rate": 0.001
+    },
+    "total_return": -0.033171664381963506,
+    "final_equity": 96682.83356180365,
+    "max_drawdown_30m": -0.05352888503860376,
+    "traded_notional": 433403.3304455964,
+    "fees": 216.70166522279817,
+    "trade_count": 20,
+    "mean_exposure": 1.0,
+    "day_end_equity": {
+      "2026-10-04": 100229.35316606055,
+      "2026-10-05": 100652.01785491416,
+      "2026-10-06": 99737.16637003602,
+      "2026-10-07": 99191.449923748,
+      "2026-10-08": 96682.83356180365
+    },
+    "day_targets": [
+      {
+        "day": "2026-10-04",
+        "eligible_count": 86,
+        "targets": [
+          "AMDB/USD",
+          "PLTRB/USD",
+          "NVDAB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-05",
+        "eligible_count": 86,
+        "targets": [
+          "AMDB/USD",
+          "NVDAB/USD",
+          "LITEB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-06",
+        "eligible_count": 86,
+        "targets": [
+          "NVDAB/USD",
+          "ICP/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-07",
+        "eligible_count": 86,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD",
+          "MSFTB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-08",
+        "eligible_count": 86,
+        "targets": [
+          "PLTRB/USD",
+          "AMDB/USD",
+          "LITEB/USD"
+        ]
+      }
+    ],
+    "trade_log": [
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 633.57,
+        "quantity": 52.61191870406322,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 189.21,
+        "quantity": 176.17109736976553,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 234.92,
+        "quantity": 141.67954333747483,
+        "notional": 33283.35832083959,
+        "fee": 16.641679160419795
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 636.37,
+        "quantity": 0.12078649667456887,
+        "notional": 76.86490288879538,
+        "fee": 0.03843245144439769
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "SELL",
+        "price": 189.64,
+        "quantity": 176.17109736976553,
+        "notional": 33409.08690520233,
+        "fee": 16.70454345260117
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 235.19,
+        "quantity": 0.34937712179603864,
+        "notional": 82.17000527521033,
+        "fee": 0.041085002637605166
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "BUY",
+        "price": 1094.52,
+        "quantity": 30.48853614882909,
+        "notional": 33370.31258561642,
+        "fee": 16.68515629280821
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 240.12,
+        "quantity": 2.3071097675288854,
+        "notional": 553.983197379036,
+        "fee": 0.276991598689518
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "SELL",
+        "price": 1093.53,
+        "quantity": 30.48853614882909,
+        "notional": 33340.128934829074,
+        "fee": 16.670064467414537
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "ICP/USD",
+        "side": "BUY",
+        "price": 3.59,
+        "quantity": 9345.40422933178,
+        "notional": 33550.00118330109,
+        "fee": 16.775000591650542
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 632.6,
+        "quantity": 0.49041064710968846,
+        "notional": 310.2337753615889,
+        "fee": 0.15511688768079446
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 651.84,
+        "quantity": 1.984690806530189,
+        "notional": 1293.7008553286385,
+        "fee": 0.6468504276643192
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 239.96,
+        "quantity": 1.1912721063629022,
+        "notional": 285.857654642842,
+        "fee": 0.142928827321421
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "ICP/USD",
+        "side": "SELL",
+        "price": 3.388,
+        "quantity": 9345.40422933178,
+        "notional": 31662.22952897607,
+        "fee": 15.831114764488035
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "MSFTB/USD",
+        "side": "BUY",
+        "price": 529.35,
+        "quantity": 62.734604446011765,
+        "notional": 33208.56286349633,
+        "fee": 16.604281431748166
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 237.85,
+        "quantity": 138.53053858537908,
+        "notional": 32949.488602532416,
+        "fee": 16.47474430126621
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "MSFTB/USD",
+        "side": "SELL",
+        "price": 529.83,
+        "quantity": 62.734604446011765,
+        "notional": 33238.675473630414,
+        "fee": 16.619337736815208
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 194.01,
+        "quantity": 170.40633205442467,
+        "notional": 33060.53248187893,
+        "fee": 16.530266240939465
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 646.97,
+        "quantity": 0.10371286521009182,
+        "notional": 67.09911240497311,
+        "fee": 0.033549556202486557
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "BUY",
+        "price": 1112.63,
+        "quantity": 29.654402088156907,
+        "notional": 32994.377395346026,
+        "fee": 16.497188697673014
+      }
+    ]
+  },
+  "spike_only_5pct": {
+    "parameters": {
+      "spike_limit": 0.05,
+      "min_score": -1.0,
+      "exit_drop": null,
+      "exit_anchor": "entry",
+      "min_qualifying": 1,
+      "fee_rate": 0.0005,
+      "slippage_rate": 0.0,
+      "market_exit_fee_rate": 0.001
+    },
+    "total_return": -0.020098658393574054,
+    "final_equity": 97990.1341606426,
+    "max_drawdown_30m": -0.05077758863896664,
+    "traded_notional": 436418.07013329177,
+    "fees": 218.20903506664592,
+    "trade_count": 20,
+    "mean_exposure": 1.0,
+    "day_end_equity": {
+      "2026-10-04": 100229.35316606055,
+      "2026-10-05": 100652.01785491416,
+      "2026-10-06": 101081.2074218922,
+      "2026-10-07": 100532.67077545219,
+      "2026-10-08": 97990.1341606426
+    },
+    "day_targets": [
+      {
+        "day": "2026-10-04",
+        "eligible_count": 86,
+        "targets": [
+          "AMDB/USD",
+          "PLTRB/USD",
+          "NVDAB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-05",
+        "eligible_count": 86,
+        "targets": [
+          "AMDB/USD",
+          "NVDAB/USD",
+          "LITEB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-06",
+        "eligible_count": 85,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD",
+          "LTC/USD"
+        ]
+      },
+      {
+        "day": "2026-10-07",
+        "eligible_count": 86,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD",
+          "MSFTB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-08",
+        "eligible_count": 86,
+        "targets": [
+          "PLTRB/USD",
+          "AMDB/USD",
+          "LITEB/USD"
+        ]
+      }
+    ],
+    "trade_log": [
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 633.57,
+        "quantity": 52.61191870406322,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 189.21,
+        "quantity": 176.17109736976553,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 234.92,
+        "quantity": 141.67954333747483,
+        "notional": 33283.35832083959,
+        "fee": 16.641679160419795
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 636.37,
+        "quantity": 0.12078649667456887,
+        "notional": 76.86490288879538,
+        "fee": 0.03843245144439769
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "SELL",
+        "price": 189.64,
+        "quantity": 176.17109736976553,
+        "notional": 33409.08690520233,
+        "fee": 16.70454345260117
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 235.19,
+        "quantity": 0.34937712179603864,
+        "notional": 82.17000527521033,
+        "fee": 0.041085002637605166
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "BUY",
+        "price": 1094.52,
+        "quantity": 30.48853614882909,
+        "notional": 33370.31258561642,
+        "fee": 16.68515629280821
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 240.12,
+        "quantity": 2.3071097675288854,
+        "notional": 553.983197379036,
+        "fee": 0.276991598689518
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "SELL",
+        "price": 1093.53,
+        "quantity": 30.48853614882909,
+        "notional": 33340.128934829074,
+        "fee": 16.670064467414537
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 632.6,
+        "quantity": 0.5439629290341799,
+        "notional": 344.1109489070222,
+        "fee": 0.1720554744535111
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "LTC/USD",
+        "side": "BUY",
+        "price": 70.11,
+        "quantity": 478.0505492762182,
+        "notional": 33516.12400975566,
+        "fee": 16.75806200487783
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 651.84,
+        "quantity": 1.3486030543220195,
+        "notional": 879.0734149292653,
+        "fee": 0.43953670746463264
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "LTC/USD",
+        "side": "SELL",
+        "price": 68.98,
+        "quantity": 478.0505492762182,
+        "notional": 32975.92688907353,
+        "fee": 16.487963444536767
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 239.96,
+        "quantity": 0.6821024554350288,
+        "notional": 163.67730520618952,
+        "fee": 0.08183865260309477
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "MSFTB/USD",
+        "side": "BUY",
+        "price": 529.35,
+        "quantity": 63.582667266521646,
+        "notional": 33657.484917533235,
+        "fee": 16.82874245876662
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 237.85,
+        "quantity": 140.403913147177,
+        "notional": 33395.07074205605,
+        "fee": 16.697535371028025
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "MSFTB/USD",
+        "side": "SELL",
+        "price": 529.83,
+        "quantity": 63.582667266521646,
+        "notional": 33688.004597821164,
+        "fee": 16.84400229891058
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 194.01,
+        "quantity": 172.7104876419325,
+        "notional": 33507.561707411325,
+        "fee": 16.753780853705663
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 646.97,
+        "quantity": 0.10503102934380593,
+        "notional": 67.95192505456212,
+        "fee": 0.033975962527281064
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "LITEB/USD",
+        "side": "BUY",
+        "price": 1112.63,
+        "quantity": 30.055375243204583,
+        "notional": 33440.51215684672,
+        "fee": 16.72025607842336
+      }
+    ]
+  },
+  "score_only_0p56": {
+    "parameters": {
+      "spike_limit": null,
+      "min_score": 0.56,
+      "exit_drop": null,
+      "exit_anchor": "entry",
+      "min_qualifying": 1,
+      "fee_rate": 0.0005,
+      "slippage_rate": 0.0,
+      "market_exit_fee_rate": 0.001
+    },
+    "total_return": -0.0007031835478259474,
+    "final_equity": 99929.68164521741,
+    "max_drawdown_30m": -0.025118929740417295,
+    "traded_notional": 300264.57447412447,
+    "fees": 150.13228723706223,
+    "trade_count": 14,
+    "mean_exposure": 0.6671884430457243,
+    "day_end_equity": {
+      "2026-10-04": 100207.74136851987,
+      "2026-10-05": 100656.23782012702,
+      "2026-10-06": 99762.7478637709,
+      "2026-10-07": 99190.8310112853,
+      "2026-10-08": 99929.68164521741
+    },
+    "day_targets": [
+      {
+        "day": "2026-10-04",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "PLTRB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-05",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "NVDAB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-06",
+        "eligible_count": 3,
+        "targets": [
+          "NVDAB/USD",
+          "ICP/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-07",
+        "eligible_count": 2,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-08",
+        "eligible_count": 1,
+        "targets": [
+          "PLTRB/USD"
+        ]
+      }
+    ],
+    "trade_log": [
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 633.57,
+        "quantity": 52.61191870406322,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 189.21,
+        "quantity": 176.17109736976553,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 636.37,
+        "quantity": 0.13210684884951718,
+        "notional": 84.06883540236724,
+        "fee": 0.04203441770118362
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "SELL",
+        "price": 189.64,
+        "quantity": 176.17109736976553,
+        "notional": 33409.08690520233,
+        "fee": 16.70454345260117
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 235.19,
+        "quantity": 141.99829019219501,
+        "notional": 33396.577870302346,
+        "fee": 16.698288935151172
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 240.12,
+        "quantity": 2.2646966777648174,
+        "notional": 543.798966264888,
+        "fee": 0.271899483132444
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "ICP/USD",
+        "side": "BUY",
+        "price": 3.59,
+        "quantity": 9346.192332781333,
+        "notional": 33552.83047468498,
+        "fee": 16.77641523734249
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 632.6,
+        "quantity": 0.532539895648659,
+        "notional": 336.8847379873417,
+        "fee": 0.16844236899367085
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 651.84,
+        "quantity": 2.002418797751197,
+        "notional": 1305.2566691261404,
+        "fee": 0.6526283345630702
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 239.96,
+        "quantity": 1.1675212684059204,
+        "notional": 280.1584035666847,
+        "fee": 0.14007920178334235
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "ICP/USD",
+        "side": "SELL",
+        "price": 3.388,
+        "quantity": 9346.192332781333,
+        "notional": 31664.899623463156,
+        "fee": 15.832449811731578
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 646.97,
+        "quantity": 51.00993295311117,
+        "notional": 33001.896322674336,
+        "fee": 16.500948161337167
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 237.85,
+        "quantity": 138.56607224602428,
+        "notional": 32957.940283716875,
+        "fee": 16.478970141858436
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 194.01,
+        "quantity": 170.42682704533976,
+        "notional": 33064.50871506637,
+        "fee": 16.532254357533184
+      }
+    ]
+  },
+  "entry_filters_only": {
+    "parameters": {
+      "spike_limit": 0.05,
+      "min_score": 0.56,
+      "exit_drop": null,
+      "exit_anchor": "entry",
+      "min_qualifying": 1,
+      "fee_rate": 0.0005,
+      "slippage_rate": 0.0,
+      "market_exit_fee_rate": 0.001
+    },
+    "total_return": 0.018548663905217255,
+    "final_equity": 101854.86639052173,
+    "max_drawdown_30m": -0.017237495012702997,
+    "traded_notional": 236418.3028806264,
+    "fees": 118.20915144031322,
+    "trade_count": 12,
+    "mean_exposure": 0.6008945889312544,
+    "day_end_equity": {
+      "2026-10-04": 100207.74136851987,
+      "2026-10-05": 100656.23782012702,
+      "2026-10-06": 101658.62450710576,
+      "2026-10-07": 101101.77653439177,
+      "2026-10-08": 101854.86639052173
+    },
+    "day_targets": [
+      {
+        "day": "2026-10-04",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "PLTRB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-05",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "NVDAB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-06",
+        "eligible_count": 2,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-07",
+        "eligible_count": 2,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-08",
+        "eligible_count": 1,
+        "targets": [
+          "PLTRB/USD"
+        ]
+      }
+    ],
+    "trade_log": [
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 633.57,
+        "quantity": 52.61191870406322,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 189.21,
+        "quantity": 176.17109736976553,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 636.37,
+        "quantity": 0.13210684884951718,
+        "notional": 84.06883540236724,
+        "fee": 0.04203441770118362
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "SELL",
+        "price": 189.64,
+        "quantity": 176.17109736976553,
+        "notional": 33409.08690520233,
+        "fee": 16.70454345260117
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 235.19,
+        "quantity": 141.99829019219501,
+        "notional": 33396.577870302346,
+        "fee": 16.698288935151172
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 240.12,
+        "quantity": 2.2646966777648174,
+        "notional": 543.798966264888,
+        "fee": 0.271899483132444
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 632.6,
+        "quantity": 0.5597557620562625,
+        "notional": 354.1014950767917,
+        "fee": 0.17705074753839586
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 651.84,
+        "quantity": 1.0553555510071533,
+        "notional": 687.9229623685028,
+        "fee": 0.3439614811842514
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 239.96,
+        "quantity": 1.4790619001086895,
+        "notional": 354.91569355008113,
+        "fee": 0.17745784677504056
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 646.97,
+        "quantity": 51.98421206626281,
+        "notional": 33632.225680510055,
+        "fee": 16.816112840255027
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 237.85,
+        "quantity": 141.2126554145389,
+        "notional": 33587.430090348076,
+        "fee": 16.79371504517404
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 194.01,
+        "quantity": 173.71015780080566,
+        "notional": 33701.507714934305,
+        "fee": 16.850753857467154
+      }
+    ]
+  },
+  "entry_filters_and_exit_0p06": {
+    "parameters": {
+      "spike_limit": 0.05,
+      "min_score": 0.56,
+      "exit_drop": 0.06,
+      "exit_anchor": "entry",
+      "min_qualifying": 1,
+      "fee_rate": 0.0005,
+      "slippage_rate": 0.0,
+      "market_exit_fee_rate": 0.001
+    },
+    "total_return": 0.014291099637860905,
+    "final_equity": 101429.10996378609,
+    "max_drawdown_30m": -0.013832235947895288,
+    "traded_notional": 302153.6606745441,
+    "fees": 201.0321730045422,
+    "trade_count": 13,
+    "mean_exposure": 0.49323880162407335,
+    "day_end_equity": {
+      "2026-10-04": 100207.74136851987,
+      "2026-10-05": 100422.77035632862,
+      "2026-10-06": 101402.5268236514,
+      "2026-10-07": 100648.69135846115,
+      "2026-10-08": 101429.10996378609
+    },
+    "day_targets": [
+      {
+        "day": "2026-10-04",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "PLTRB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-05",
+        "eligible_count": 2,
+        "targets": [
+          "AMDB/USD",
+          "NVDAB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-06",
+        "eligible_count": 2,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-07",
+        "eligible_count": 2,
+        "targets": [
+          "NVDAB/USD",
+          "AMDB/USD"
+        ]
+      },
+      {
+        "day": "2026-10-08",
+        "eligible_count": 1,
+        "targets": [
+          "PLTRB/USD"
+        ]
+      }
+    ],
+    "trade_log": [
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 633.57,
+        "quantity": 52.61191870406322,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-04T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 189.21,
+        "quantity": 176.17109736976553,
+        "notional": 33333.333333333336,
+        "fee": 16.666666666666668
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 636.37,
+        "quantity": 0.13210684884951718,
+        "notional": 84.06883540236724,
+        "fee": 0.04203441770118362
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "SELL",
+        "price": 189.64,
+        "quantity": 176.17109736976553,
+        "notional": 33409.08690520233,
+        "fee": 16.70454345260117
+      },
+      {
+        "time": "2026-10-05T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 235.19,
+        "quantity": 141.99829019219501,
+        "notional": 33396.577870302346,
+        "fee": 16.698288935151172
+      },
+      {
+        "time": "2026-10-05T12:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 628.71,
+        "quantity": 52.479811855213704,
+        "notional": 32994.58251149141,
+        "fee": 32.99458251149141
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 240.12,
+        "quantity": 2.5938946490961428,
+        "notional": 622.8459831409658,
+        "fee": 0.3114229915704829
+      },
+      {
+        "time": "2026-10-06T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "BUY",
+        "price": 632.6,
+        "quantity": 52.91461185236943,
+        "notional": 33473.7834578089,
+        "fee": 16.736891728904453
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 651.84,
+        "quantity": 1.0613582484896895,
+        "notional": 691.8357606955193,
+        "fee": 0.34591788034775967
+      },
+      {
+        "time": "2026-10-07T00:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "BUY",
+        "price": 239.96,
+        "quantity": 1.4525173971952086,
+        "notional": 348.54607463096227,
+        "fee": 0.17427303731548113
+      },
+      {
+        "time": "2026-10-07T10:00:00+00:00",
+        "pair": "AMDB/USD",
+        "side": "SELL",
+        "price": 642.29,
+        "quantity": 51.85325360387974,
+        "notional": 33304.826257235916,
+        "fee": 33.304826257235916
+      },
+      {
+        "time": "2026-10-07T11:00:00+00:00",
+        "pair": "NVDAB/USD",
+        "side": "SELL",
+        "price": 238.62,
+        "quantity": 140.85691294029408,
+        "notional": 33611.27656581297,
+        "fee": 33.61127656581297
+      },
+      {
+        "time": "2026-10-08T00:00:00+00:00",
+        "pair": "PLTRB/USD",
+        "side": "BUY",
+        "price": 194.01,
+        "quantity": 172.9269820429551,
+        "notional": 33549.56378615372,
+        "fee": 16.77478189307686
+      }
+    ]
+  },
+  "stress": {
+    "fee_0.0005_slip_0.0000": {
+      "entry_filters_only": 0.018548663905217255,
+      "entry_filters_and_exit_0p06": 0.014291099637860905
+    },
+    "fee_0.0005_slip_0.0010": {
+      "entry_filters_only": 0.016166331243066434,
+      "entry_filters_and_exit_0p06": 0.011248577576709273
+    },
+    "fee_0.0005_slip_0.0020": {
+      "entry_filters_only": 0.013786749163426038,
+      "entry_filters_and_exit_0p06": 0.008211467817131446
+    },
+    "fee_0.0010_slip_0.0000": {
+      "entry_filters_only": 0.01735723774478659,
+      "entry_filters_and_exit_0p06": 0.013272346790802247
+    },
+    "fee_0.0010_slip_0.0010": {
+      "entry_filters_only": 0.014976112669709885,
+      "entry_filters_and_exit_0p06": 0.010230804349029121
+    },
+    "fee_0.0010_slip_0.0020": {
+      "entry_filters_only": 0.012597739273699782,
+      "entry_filters_and_exit_0p06": 0.007194676446757864
+    }
+  }
+}
