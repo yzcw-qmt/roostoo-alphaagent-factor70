@@ -64,7 +64,16 @@ A high score requires a large 20-day net move that is not interrupted by many re
 
 ## Strategy
 
-Each day, after the prior UTC daily candle closes, the bot scores every eligible asset with Factor 70 and selects the top three. It holds those three at equal weight and rebalances daily. Holdings that leave the top three are sold, and the rest of the portfolio is adjusted to the new targets. The bot only takes long spot positions.
+Each day, after the prior UTC daily candle closes, the bot scores every eligible asset with Factor 70 and builds a three-name book. It holds those three at equal weight and reviews the book daily. The bot only takes long spot positions.
+
+Four rules sit on top of the raw ranking:
+
+- **Score floor (`FACTOR_MIN_SCORE`, default 0.30).** A pair is only eligible for a new slot when its factor is at or above this value. Rank alone is not a signal: on a quiet day the third-ranked name can still be weak, and buying it loses money.
+- **Parabolic-move filter (`FACTOR_MAX_DAILY_GAIN`, default 0 — disabled).** A pair whose latest closed daily candle gained more than this fraction is excluded. A single parabolic day inflates the numerator of Factor 70, so an unfiltered ranking chases exactly the names that mean-revert hardest. Backtests on 2025-01 to 2026-10 showed every tested threshold between 15% and 50% *reduced* returns, so this rule ships off.
+- **Sticky exit (`FACTOR_EXIT_REL_DROP`, default 0.45).** A held name is not sold merely for slipping down the ranking. It keeps its slot until its score falls more than this fraction below the score recorded at the previous rebalance; the remaining slots refill from the best eligible names. A name that was dropped is never re-admitted by the refill in the same cycle. When no baseline score exists (fresh state), the entry filters decide instead.
+- **Intraday exit (`FACTOR_EXIT_REL_DROP`, every 30 minutes).** The same threshold is checked between rebalances. Each held name is re-scored with the last 20 completed daily closes plus the live price substituted for today's close — the identical window as the daily score, so the comparison is like-for-like. A drop of more than 45% against the recorded baseline submits a sell immediately. Entries are not touched intraday: a slot freed by an exit stays in cash until the next 08:00 HKT rebalance.
+
+The book can be empty. When nothing clears the filters the portfolio goes to cash rather than holding a weak position overnight.
 
 We tested top-N portfolios with N = 1, 2, 3, 4, and 5. N = 3 produced the best result, so it is the default (`FACTOR_TOP_N`).
 
@@ -82,7 +91,7 @@ flowchart TD
     F --> G[Record order responses]
 ```
 
-The [engine](roostoo_bot/engine.py) quotes buys one tick below `MaxBid` and sells one tick above `MinAsk`, subject to exchange precision and minimum size. It skips pairs with pending orders and reserves a small USD buffer. These are order limits, not predicted prices; orders may remain unfilled. The factor path has no per-asset take-profit or fixed stop-loss. Portfolio loss checks can pause rebalancing without liquidating positions.
+The [engine](roostoo_bot/engine.py) quotes buys one tick below `MaxBid` and sells one tick above `MinAsk`, subject to exchange precision and minimum size. It skips pairs with pending orders and reserves a small USD buffer. Exits are submitted before entries and new buys wait for those exits to fill, because a resting Maker sell does not free USD. A rebalance that cannot be completed (underfunded slot or resting order) is retried up to six times before the day is closed. These are order limits, not predicted prices; orders may remain unfilled. The factor path has no per-asset take-profit or fixed stop-loss. Portfolio loss checks can pause rebalancing without liquidating positions.
 
 ## Backtest data and evaluation
 
@@ -95,6 +104,8 @@ flowchart LR
     C --> D[Risk ratios and charts]
     D --> E[Review source consistency]
 ```
+
+**Scope note.** The committed `daily_top3` series below is a plain daily top-3 rotation: no score floor, no sticky exit, no intraday monitoring. It is the original research result, not a simulation of the current code. The rules in [Strategy](#strategy) were added later and have **not** been re-backtested on a clean, complete dataset, so no return figure is claimed for them here.
 
 The [CSV summary script](scripts/summarize_factor70_csv.py) recalculates the table and charts below from the `daily_top3` column. Total return is the product of `1 + daily net return`, minus one. Sharpe uses the daily mean divided by sample standard deviation, annualized by `√365`; Sortino uses downside root-mean-square below zero. Calmar divides annualized return by absolute maximum drawdown. All three use a zero risk-free/target rate. Drawdown resets at the start of each annual row; the full-period row uses one continuous equity curve.
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -9,9 +10,16 @@ from .api_client import RoostooClient, RoostooAPIError
 from .config import Settings
 from .data_fetcher import BinanceDataFetcher
 from .executor import TradeExecutor, round_down, round_up
-from .factor_strategy import CrossSectionalFactorStrategy, FactorSignal
+from .factor_strategy import (
+    CrossSectionalFactorStrategy,
+    FactorSignal,
+    alphaagent_70_live,
+)
 from .journal import Journal, StateStore
 from .risk_manager import RiskManager
+
+
+MAX_REBALANCE_ATTEMPTS = 6
 
 
 class TradingEngine:
@@ -44,7 +52,12 @@ class TradingEngine:
             settings.trailing_activation,
             settings.trailing_gap,
         )
-        self.factor_strategy = CrossSectionalFactorStrategy(settings.strategy, settings.factor_top_n)
+        self.factor_strategy = CrossSectionalFactorStrategy(
+            settings.strategy,
+            settings.factor_top_n,
+            min_score=settings.factor_min_score,
+            max_daily_gain=settings.factor_max_daily_gain,
+        )
         self.executor = TradeExecutor(self.client, self.journal, settings.dry_run)
         self.log = logging.getLogger(__name__)
 
@@ -110,6 +123,78 @@ class TradingEngine:
         equity += sum(float(position.get("PositionValue", 0)) for position in shorts)
         return equity
 
+    def _factor_targets(
+        self,
+        signals: list[FactorSignal],
+        state: dict[str, Any],
+        holdings: set[str],
+    ) -> tuple[list[FactorSignal], set[str]]:
+        """Build the target basket for this rebalance.
+
+        With ``factor_exit_rel_drop == 0`` this is a plain daily top-N
+        rebalance.  With a positive value the book becomes *sticky*: a held
+        name keeps its slot even if it slips down the ranking, and is only
+        sold once its factor collapses by that fraction against the score
+        recorded at the previous rebalance.  That is the rule that was
+        actually backtested -- applying the drop only as an extra filter on
+        top of a full daily rotation does not reproduce the result, because
+        the rotation sells every name the sticky rule would have kept.
+        """
+        by_pair = {signal.pair: signal for signal in signals}
+        drop = float(self.settings.factor_exit_rel_drop)
+        previous = state.get("scores") or {}
+
+        if drop <= 0:
+            targets = [signal for signal in signals if signal.selected]
+            return targets[: self.settings.factor_top_n], set()
+
+        keep: list[FactorSignal] = []
+        forced: set[str] = set()
+        for pair in sorted(holdings):
+            signal = by_pair.get(pair)
+            if signal is None:
+                # Untradable or not in today's universe: let the sell path
+                # unwind it rather than keeping a name we cannot score.
+                continue
+            old = previous.get(pair)
+            if old and old > 0 and signal.factor_value / float(old) - 1.0 < -drop:
+                forced.add(pair)
+                self.journal.write(
+                    "factor_forced_exit", pair=pair,
+                    score=signal.factor_value, previous_score=old,
+                )
+                continue
+            if not old and signal.blocked:
+                # No score was recorded for this position (first run after an
+                # upgrade, or a state reset), so the exit rule has nothing to
+                # compare against. Fall back to the entry filters: a name we
+                # would not buy today should not be carried on faith.
+                forced.add(pair)
+                self.journal.write(
+                    "factor_forced_exit", pair=pair,
+                    score=signal.factor_value, previous_score=None,
+                    reason=signal.blocked,
+                )
+                continue
+            keep.append(signal)
+
+        keep.sort(key=lambda item: (-item.factor_value, item.pair))
+        keep = keep[: self.settings.factor_top_n]
+        chosen = {signal.pair for signal in keep}
+        # A name that was just dropped must not be re-admitted by the refill
+        # loop below; otherwise the forced exit is silently undone.
+        rejected = set(holdings) - chosen
+        # Entry filters apply only to new positions; an existing holding is
+        # governed by the exit rule above.
+        for signal in signals:
+            if len(keep) >= self.settings.factor_top_n:
+                break
+            if signal.blocked or signal.pair in chosen or signal.pair in rejected:
+                continue
+            keep.append(signal)
+            chosen.add(signal.pair)
+        return keep, forced
+
     def _factor_rebalance(
         self,
         signals: list[FactorSignal],
@@ -119,7 +204,13 @@ class TradingEngine:
         equity: float,
         pending_pairs: set[str] | None = None,
     ) -> None:
-        """Rebalance a daily long-only top-N factor portfolio with LIMIT orders."""
+        """Rebalance a daily long-only top-N factor portfolio with LIMIT orders.
+
+        Exits run first and new buys wait until every exit order is filled,
+        because a resting Maker sell does not free USD.  The basket can be
+        empty: when nothing clears the entry filters the portfolio goes to
+        cash instead of holding a weak position overnight.
+        """
         if not signals or equity <= 0:
             return
         now = datetime.now(timezone.utc)
@@ -142,37 +233,43 @@ class TradingEngine:
             return
         if state.get("date") == today and not retry:
             return
-        selected = [signal for signal in signals if signal.selected]
-        if not selected:
-            return
-        target_notional = equity / len(selected)
-        selected_pairs = {signal.pair for signal in selected}
+
+        holdings = {
+            f"{coin}/USD"
+            for coin, balance in wallet.items()
+            if coin != "USD"
+            and float(balance.get("Free", 0)) + float(balance.get("Lock", 0)) > 0
+            and f"{coin}/USD" in rules_all
+        }
+        targets, forced_exit = self._factor_targets(signals, state, holdings)
+        target_pairs = {signal.pair for signal in targets}
+        target_notional = equity / len(targets) if targets else 0.0
         pending_pairs = pending_pairs or set()
         available_usd = float(wallet.get("USD", {}).get("Free", 0))
         # Keep room for the 0.05% Maker commission and small price movement.
         cash_buffer = 1.001
         errors = False
         waiting_for_exits = False
+        incomplete = False
+        self.journal.write(
+            "factor_targets", targets=sorted(target_pairs),
+            forced_exit=sorted(forced_exit), equity=round(equity, 2),
+        )
 
-        # When changing from five holdings to three, liquidate dropped
-        # assets first so their filled proceeds can fund the new 33.33%
-        # targets. The previous rank order bought selected assets first.
-        ordered_signals = [
-            signal for signal in signals if not signal.selected
-        ] + [
-            signal for signal in signals if signal.selected
+        # Liquidate dropped assets first so their filled proceeds can fund the
+        # new equal-weight targets.  Rank order alone would buy first and
+        # starve the later names.
+        ordered = [signal for signal in signals if signal.pair not in target_pairs] + [
+            signal for signal in signals if signal.pair in target_pairs
         ]
 
-        for signal in ordered_signals:
+        for signal in ordered:
             pair = signal.pair
-            if pair in pending_pairs:
-                if pair not in selected_pairs:
-                    waiting_for_exits = True
-                self.journal.write("factor_pending_skip", pair=pair)
-                continue
             rules = rules_all.get(pair, {})
             ticker = tickers.get(pair)
             if not ticker or not rules.get("CanTrade", False):
+                if pair in target_pairs:
+                    incomplete = True
                 continue
             coin = pair.split("/")[0]
             quantity = float(wallet.get(coin, {}).get("Free", 0))
@@ -182,7 +279,15 @@ class TradingEngine:
             price_precision = int(rules.get("PricePrecision", 2))
             minimum = float(rules.get("MiniOrder", 0))
 
-            if pair not in selected_pairs:
+            if pair in pending_pairs:
+                if pair not in target_pairs:
+                    waiting_for_exits = True
+                else:
+                    incomplete = True
+                self.journal.write("factor_pending_skip", pair=pair)
+                continue
+
+            if pair not in target_pairs:
                 if current_notional >= minimum:
                     try:
                         self.executor.sell_limit(
@@ -206,6 +311,7 @@ class TradingEngine:
             # Complete all exits before submitting any new buys. This avoids
             # assuming that a passive sell has filled immediately.
             if waiting_for_exits:
+                incomplete = True
                 continue
 
             difference = target_notional - current_notional
@@ -217,38 +323,69 @@ class TradingEngine:
                 # every pair, so pending orders could starve later buys.
                 spend = min(difference, available_usd / cash_buffer)
                 buy_qty = round_down(spend / price, amount_precision)
-                if buy_qty > 0:
-                    # Quote one tick below the bid. A best-bid order can still
-                    # become a taker when the book moves before submission.
-                    order_price = round_down(
-                        max(10 ** (-price_precision), float(ticker["MaxBid"]) - 10 ** (-price_precision)),
-                        price_precision,
+                # Quote one tick below the bid. A best-bid order can still
+                # become a taker when the book moves before submission.
+                order_price = round_down(
+                    max(10 ** (-price_precision), float(ticker["MaxBid"]) - 10 ** (-price_precision)),
+                    price_precision,
+                )
+                if buy_qty <= 0 or buy_qty * order_price < minimum:
+                    # Cash actually available is below the target. Flag this
+                    # so the next cycle retries instead of marking the day
+                    # complete with an underweight book (the bug behind the
+                    # original "retry=False while Top 3 unfilled" behaviour).
+                    incomplete = True
+                    self.journal.write(
+                        "factor_underfunded", pair=pair,
+                        target=round(target_notional, 2),
+                        available=round(available_usd, 2),
                     )
-                    if buy_qty * order_price < minimum:
-                        continue
-                    try:
-                        self.executor.buy_limit(pair, buy_qty, order_price)
-                        available_usd -= buy_qty * order_price * cash_buffer
-                    except Exception as exc:
-                        errors = True
-                        self.log.warning("Factor buy failed for %s: %s", pair, exc)
+                    continue
+                try:
+                    self.executor.buy_limit(pair, buy_qty, order_price)
+                    available_usd -= buy_qty * order_price * cash_buffer
+                except Exception as exc:
+                    errors = True
+                    incomplete = True
+                    self.log.warning("Factor buy failed for %s: %s", pair, exc)
             else:
                 sell_qty = round_down(min(quantity, -difference / price), amount_precision)
                 if sell_qty > 0:
-                    self.executor.sell_limit(
-                        pair, sell_qty,
-                        # Quote one tick above the ask to avoid crossing.
-                        round_up(
-                            float(ticker["MinAsk"]) + 10 ** (-price_precision),
-                            price_precision,
-                        ),
-                    )
+                    try:
+                        self.executor.sell_limit(
+                            pair, sell_qty,
+                            # Quote one tick above the ask to avoid crossing.
+                            round_up(
+                                float(ticker["MinAsk"]) + 10 ** (-price_precision),
+                                price_precision,
+                            ),
+                        )
+                    except Exception as exc:
+                        errors = True
+                        self.log.warning("Factor trim failed for %s: %s", pair, exc)
 
         state["last_attempt"] = now.timestamp()
-        state["selected"] = sorted(selected_pairs)
-        state["retry"] = errors or waiting_for_exits
-        if not errors and not waiting_for_exits:
+        state["selected"] = sorted(target_pairs)
+        attempts = int(state.get("attempts", 0)) + 1
+        state["attempts"] = attempts
+        retry = errors or waiting_for_exits or incomplete
+        # A limit order that never fills would otherwise keep the day open
+        # forever and let later retries trim positions that are already at
+        # target. Give up after a bounded number of attempts and let the next
+        # daily rebalance handle the residual.
+        gave_up = retry and attempts >= MAX_REBALANCE_ATTEMPTS
+        if gave_up:
+            self.journal.write(
+                "factor_rebalance_gave_up", attempts=attempts,
+                targets=sorted(target_pairs), equity=round(equity, 2),
+            )
+        state["retry"] = retry and not gave_up
+        if not state["retry"]:
             state["date"] = today
+            state["attempts"] = 0
+            state["scores"] = {
+                signal.pair: signal.factor_value for signal in signals
+            }
         self.store.save(self.bot_state)
 
     def _pending_factor_pairs(self) -> set[str]:
@@ -267,6 +404,88 @@ class TradingEngine:
             for order in orders
             if isinstance(order, dict) and order.get("Pair")
         }
+
+    def _factor_intraday_exit(
+        self,
+        wallet: dict[str, Any],
+        rules_all: dict[str, Any],
+        tickers: dict[str, Any],
+        pending_pairs: set[str] | None = None,
+    ) -> list[str]:
+        """Sell a held name as soon as its live factor collapses.
+
+        The daily rebalance records one baseline score per holding.  Between
+        rebalances this runs on every loop tick and re-scores each position
+        using the live price in place of the unfinished daily candle.  When a
+        score falls further than ``factor_exit_rel_drop`` below its baseline
+        the position is sold immediately instead of waiting for the next
+        UTC 00:00 review -- which is what turned a 6% one-day drop into a
+        multi-day hold in the 10-12 PLUME trade.
+
+        Entries are *not* touched here: buying stays on the daily schedule so
+        the book is not rebuilt intraday on noise.
+        """
+        drop = float(self.settings.factor_exit_rel_drop)
+        if drop <= 0:
+            return []
+        state = self.bot_state.get("factor_rebalance") or {}
+        baseline = state.get("scores") or {}
+        if not baseline:
+            return []
+        pending_pairs = pending_pairs or set()
+        sold: list[str] = []
+        for coin, balance in wallet.items():
+            if coin == "USD":
+                continue
+            pair = f"{coin}/USD"
+            if pair not in rules_all or pair not in baseline:
+                continue
+            quantity = float(balance.get("Free", 0))
+            if quantity <= 0 or pair in pending_pairs:
+                continue
+            ticker = tickers.get(pair)
+            if not ticker or not rules_all[pair].get("CanTrade", False):
+                continue
+            try:
+                frame = self.data.candles(pair, "1d", max(self.settings.candle_limit, 80))
+            except Exception as exc:
+                self.log.warning("Intraday factor data unavailable for %s: %s", pair, exc)
+                continue
+            live = alphaagent_70_live(frame, float(ticker["LastPrice"]))
+            old = float(baseline[pair])
+            if not math.isfinite(live) or old <= 0:
+                continue
+            change = live / old - 1.0
+            if change >= -drop:
+                continue
+            precision = int(rules_all[pair].get("AmountPrecision", 6))
+            price_precision = int(rules_all[pair].get("PricePrecision", 2))
+            try:
+                self.executor.sell_limit(
+                    pair, round_down(quantity, precision),
+                    # A sell limit above the ask is passive and may sit open
+                    # while the position keeps falling. Quote at the best bid
+                    # (rounded down to a valid tick) so the exit is marketable
+                    # while retaining a price floor.
+                    round_down(float(ticker["MaxBid"]), price_precision),
+                )
+                sold.append(pair)
+            except Exception as exc:
+                self.log.warning("Intraday exit failed for %s: %s", pair, exc)
+                continue
+            # Keep the baseline on purpose. A LIMIT sell is not a fill: it
+            # can rest, be cancelled, or fill only in part, and the resting
+            # quantity stays Locked (Free drops to 0). Deleting the baseline
+            # here would leave the remaining position unmonitored forever.
+            # Duplicate orders are already prevented by the pending-order
+            # check above and by only selling the Free quantity.
+            self.journal.write(
+                "factor_intraday_exit", pair=pair, score=live,
+                previous_score=old, change=round(change, 4),
+            )
+        if sold:
+            self.store.save(self.bot_state)
+        return sold
 
     def cycle(self) -> dict[str, Any]:
         exchange = self.client.exchange_info()
@@ -321,11 +540,15 @@ class TradingEngine:
             factor_signals, wallet, rules_all, tickers, equity,
             self._pending_factor_pairs(),
         )
+        pending = self._pending_factor_pairs()
+        self._factor_intraday_exit(wallet, rules_all, tickers, pending)
         return {
             "equity": equity,
             "halted": False,
             "strategy": self.settings.strategy,
-            "signals": [signal.__dict__ for signal in factor_signals],
+            "signals": [
+                {**signal.__dict__, "action": signal.action} for signal in factor_signals
+            ],
         }
 
     def run_forever(self) -> None:

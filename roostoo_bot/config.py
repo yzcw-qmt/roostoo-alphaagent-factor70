@@ -4,7 +4,11 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:  # .env support is a convenience; environment variables always work.
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover - depends on the install
+    def load_dotenv(*_args, **_kwargs) -> bool:
+        return False
 
 
 def _bool(name: str, default: bool) -> bool:
@@ -35,6 +39,9 @@ class Settings:
     limit_offset_bps: float = 0.0
 
     factor_top_n: int = 3
+    factor_min_score: float = 0.30
+    factor_max_daily_gain: float = 0.0
+    factor_exit_rel_drop: float = 0.45
 
     max_position_fraction: float = 0.30
     kelly_fraction: float = 0.30
@@ -66,6 +73,9 @@ class Settings:
             loop_interval_seconds=int(os.getenv("LOOP_INTERVAL_SECONDS", "1800")),
             strategy=os.getenv("STRATEGY", "alphaagent_70").strip().lower(),
             factor_top_n=int(os.getenv("FACTOR_TOP_N", "3")),
+            factor_min_score=_float("FACTOR_MIN_SCORE", 0.30),
+            factor_max_daily_gain=_float("FACTOR_MAX_DAILY_GAIN", 0.0),
+            factor_exit_rel_drop=_float("FACTOR_EXIT_REL_DROP", 0.45),
             order_type=os.getenv("ORDER_TYPE", "LIMIT").strip().upper(),
             limit_offset_bps=_float("LIMIT_OFFSET_BPS", 0.0),
         )

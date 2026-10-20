@@ -13,3 +13,4 @@ reports/
 !data/.gitkeep
 !logs/.gitkeep
 !models/.gitkeep
+.DS_Store
